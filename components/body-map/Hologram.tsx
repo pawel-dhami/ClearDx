@@ -6,9 +6,9 @@ import * as THREE from "three";
 import type { Region } from "@/lib/symptoms";
 import { generateBodyCloud, REGION_INDEX } from "./bodyModel";
 import type { FigureProps } from "./types";
+import { readAccentRGB, useThemeState } from "@/lib/theme";
 
 const SCALE = 2.2; // model units → world units (body is 2.2 tall)
-const CYAN = new THREE.Color("#00f0ff");
 
 /** Soft round sprite so each point renders as a glowing dot, not a square. */
 function useDotTexture() {
@@ -47,17 +47,23 @@ function Cloud({ counts, active, hovered, scanning, onHover, onSelect, reduced, 
   }, [cloud]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const texture = useDotTexture();
+  // Accent colour + theme come from the page (theme toggle / hue slider).
+  const { theme, hue } = useThemeState();
+  const accent = useRef<[number, number, number]>([0, 0.94, 1]);
+  useLayoutEffect(() => {
+    accent.current = readAccentRGB();
+  }, [theme, hue]);
   const group = useRef<THREE.Group>(null);
   const invalidate = useThree((s) => s.invalidate);
   const tilt = useRef(0);
 
   // Keep the latest props in a ref so the frame loop never re-subscribes.
-  const live = useRef({ counts, active, hovered, scanning, reduced });
+  const live = useRef({ counts, active, hovered, scanning, reduced, theme: "dark" as string });
   // Sync after each render; with reduced motion the canvas renders on demand, so also ask for a frame.
   useLayoutEffect(() => {
-    live.current = { counts, active, hovered, scanning, reduced };
+    live.current = { counts, active, hovered, scanning, reduced, theme };
     invalidate();
-  }, [counts, active, hovered, scanning, reduced, invalidate]);
+  }, [counts, active, hovered, scanning, reduced, theme, hue, invalidate]);
 
   useFrame((state, dt) => {
     const g = group.current;
@@ -71,6 +77,7 @@ function Cloud({ counts, active, hovered, scanning, onHover, onSelect, reduced, 
     tilt.current += (target - tilt.current) * (1 - Math.exp(-dt * 4));
     g.rotation.y = tilt.current;
 
+    const light = live.current.theme === "light";
     const colors = geometry.getAttribute("color") as THREE.BufferAttribute;
     const arr = colors.array as Float32Array;
     const pulse = rm ? 0.18 : 0.15 + 0.15 * Math.sin(t * 3.1);
@@ -95,9 +102,12 @@ function Cloud({ counts, active, hovered, scanning, onHover, onSelect, reduced, 
         if (dx * dx + dy * dy < 0.035) k = 1;
       }
       k = Math.min(1, k);
-      arr[i * 3] = CYAN.r * k;
-      arr[i * 3 + 1] = CYAN.g * k;
-      arr[i * 3 + 2] = CYAN.b * k;
+      // Dark theme: additive glow scales brightness. Light theme: solid dots, so keep full colour.
+      const [cr, cg, cb] = accent.current;
+      const m = light ? 0.35 + 0.65 * k : k;
+      arr[i * 3] = cr * m;
+      arr[i * 3 + 1] = cg * m;
+      arr[i * 3 + 2] = cb * m;
     }
     colors.needsUpdate = true;
   });
@@ -127,7 +137,7 @@ function Cloud({ counts, active, hovered, scanning, onHover, onSelect, reduced, 
           vertexColors
           transparent
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={theme === "light" ? THREE.NormalBlending : THREE.AdditiveBlending}
         />
       </points>
     </group>

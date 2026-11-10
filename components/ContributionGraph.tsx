@@ -16,10 +16,10 @@ import { highlightedConditions, highlightedSymptoms, pct, type Highlight } from 
 import { springs } from "@/lib/motion";
 import type { PredictionResult } from "@/lib/predict/types";
 
-const SUPPORT = "#00ff66";
-const CONTRA = "#ff3b5c";
-const CYAN = "#00f0ff";
-const NOEFFECT = "#475569";
+const SUPPORT = "var(--support)";
+const CONTRA = "var(--contra)";
+const CYAN = "var(--accent)";
+const NOEFFECT = "var(--noeffect)";
 
 // ---------- graph model ----------
 
@@ -306,7 +306,7 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
                     />
                     {/* particles flowing symptom → condition */}
                     {Math.abs(l.weight) >= 0.3 && (!anyFocus || lit) && (
-                      <path d={d} fill="none" stroke="#e2e8f0" strokeOpacity={0.65} strokeWidth={1.6} strokeLinecap="round" strokeDasharray="2 14" className="animate-flow" />
+                      <path d={d} fill="none" stroke="var(--text)" strokeOpacity={0.65} strokeWidth={1.6} strokeLinecap="round" strokeDasharray="2 14" className="animate-flow" />
                     )}
                     <path
                       d={d}
@@ -371,17 +371,17 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
                       {isCond ? (
                         <>
                           <circle r={n.r + 4} fill="none" stroke={CYAN} strokeOpacity={lit ? 0.7 : 0.25} />
-                          <circle r={n.r} fill={`rgba(0,240,255,${lit ? 0.3 : 0.16})`} stroke={CYAN} strokeWidth={1.5} filter={lit ? "url(#node-glow)" : undefined} />
+                          <circle r={n.r} fill={`color-mix(in oklab, var(--accent) ${lit ? 30 : 16}%, transparent)`} stroke={CYAN} strokeWidth={1.5} filter={lit ? "url(#node-glow)" : undefined} />
                         </>
                       ) : (
-                        <circle r={n.r * (lit ? 1.2 : 1)} fill="#030812" stroke={n.tag ? NOEFFECT : CYAN} strokeWidth={2} strokeDasharray={n.tag ? "3 2" : undefined} filter={lit && !n.tag ? "url(#node-glow)" : undefined} />
+                        <circle r={n.r * (lit ? 1.2 : 1)} fill="var(--ink)" stroke={n.tag ? NOEFFECT : CYAN} strokeWidth={2} strokeDasharray={n.tag ? "3 2" : undefined} filter={lit && !n.tag ? "url(#node-glow)" : undefined} />
                       )}
                       <text
                         {...labelProps}
                         fontSize={isCond ? 15 : 12.5}
                         fontWeight={isCond ? 700 : 400}
-                        fill={n.tag ? "#94a3b8" : "#e2e8f0"}
-                        style={{ fontFamily: isCond ? "var(--font-display)" : "var(--font-sans)", textTransform: isCond ? "uppercase" : undefined, letterSpacing: isCond ? "0.05em" : undefined, paintOrder: "stroke", stroke: "#030812", strokeWidth: 3 }}
+                        fill={n.tag ? "var(--muted)" : "var(--text)"}
+                        style={{ fontFamily: isCond ? "var(--font-display)" : "var(--font-sans)", textTransform: isCond ? "uppercase" : undefined, letterSpacing: isCond ? "0.05em" : undefined, paintOrder: "stroke", stroke: "var(--ink)", strokeWidth: 3 }}
                         textDecoration={n.tag === "excluded" ? "line-through" : undefined}
                         pointerEvents="none"
                         aria-hidden
@@ -389,12 +389,12 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
                         {n.label}
                       </text>
                       {isCond && !vertical && (
-                        <text x={n.r + 9} y={14} fontSize={11.5} fill={lit ? CYAN : "#94a3b8"} style={{ fontFamily: "var(--font-mono)" }} pointerEvents="none" aria-hidden>
+                        <text x={n.r + 9} y={14} fontSize={11.5} fill={lit ? CYAN : "var(--muted)"} style={{ fontFamily: "var(--font-mono)" }} pointerEvents="none" aria-hidden>
                           {pct(n.confidence ?? 0)}%
                         </text>
                       )}
                       {n.tag && !vertical && (
-                        <text x={n.r + 9} y={4} fontSize={11} fill="#94a3b8" style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }} pointerEvents="none" aria-hidden>
+                        <text x={n.r + 9} y={4} fontSize={11} fill="var(--muted)" style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }} pointerEvents="none" aria-hidden>
                           {n.tag}
                         </text>
                       )}

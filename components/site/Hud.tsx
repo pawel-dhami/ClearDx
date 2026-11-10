@@ -23,7 +23,7 @@ export function Corners({ tone = "cyan", only }: { tone?: "cyan" | "contra" | "a
 export function PanelTitle({ children, id, className = "" }: { children: ReactNode; id?: string; className?: string }) {
   return (
     <h2 id={id} className={`flex items-center gap-2 font-mono text-xs tracking-[0.1em] text-muted uppercase ${className}`}>
-      <span aria-hidden className="size-1.5 bg-cyan shadow-[0_0_6px_var(--color-cyan)]" />
+      <span aria-hidden className="size-1.5 bg-cyan shadow-[0_0_6px_var(--accent)]" />
       {children}
     </h2>
   );

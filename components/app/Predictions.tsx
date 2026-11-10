@@ -49,7 +49,7 @@ export function ConfidenceRing({ value, before, size = 150 }: { value: number; b
             </feMerge>
           </filter>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(0 240 255 / 0.08)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="color-mix(in oklab, var(--accent) 8%, transparent)" strokeWidth={stroke} />
         {before != null && (
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(148 163 184 / 0.35)" strokeWidth={stroke} strokeDasharray={C} strokeDashoffset={C * (1 - before)} />
         )}
@@ -58,7 +58,7 @@ export function ConfidenceRing({ value, before, size = 150 }: { value: number; b
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#00f0ff"
+          stroke="var(--accent)"
           strokeWidth={stroke}
           strokeDasharray={C}
           initial={{ strokeDashoffset: C }}
@@ -199,8 +199,8 @@ export function TopPredictionSkeleton({ count }: { count: number }) {
     <section className="hud flex flex-1 items-center gap-6 p-5" aria-busy="true" aria-label="Analyzing">
       <Corners only={["tl", "br"]} />
       <svg width="150" height="150" viewBox="0 0 160 160" className="shrink-0" aria-hidden>
-        <circle cx="80" cy="80" r="70" fill="none" stroke="rgb(0 240 255 / 0.08)" strokeWidth="8" />
-        <circle cx="80" cy="80" r="70" fill="none" stroke="#00f0ff" strokeWidth="8" strokeDasharray="90 350" className="origin-center animate-spin [animation-duration:1.6s]" />
+        <circle cx="80" cy="80" r="70" fill="none" stroke="color-mix(in oklab, var(--accent) 8%, transparent)" strokeWidth="8" />
+        <circle cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" strokeWidth="8" strokeDasharray="90 350" className="origin-center animate-spin [animation-duration:1.6s]" />
       </svg>
       <div className="flex-1 space-y-3">
         <p className="label !text-cyan">Analyzing {count} symptom{count === 1 ? "" : "s"}…</p>

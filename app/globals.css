@@ -1,34 +1,85 @@
 @import "tailwindcss";
 
-/* ClearDx "Clinical HUD" design system — see .superdesign/design-system.md */
-@theme {
-  --font-display: var(--font-rajdhani), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+/*
+ * ClearDx "Clinical HUD" design system (see .superdesign/design-system.md).
+ * Every colour is a CSS variable so the theme (dark/light) and the accent hue
+ * slider can recolour the whole UI at runtime. Set on <html>:
+ *   data-theme="dark" | "light"      style="--hue: 0–360"
+ */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --hue: 190;
+  --line: color-mix(in oklab, var(--accent) 22%, transparent);
+  --accent: oklch(0.87 0.15 var(--hue));
+  --ink: #030812;
+  --raised: #07111f;
+  --text: #e2e8f0;
+  --soft: #cbd5e1;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --support: #00ff66;
+  --contra: #ff3b5c;
+  --amber: #ffb000;
+  --severe: #ff8a3d;
+  --noeffect: #475569;
+  --panel: rgb(3 8 18 / 0.72);
+  --panel-quiet: rgb(3 8 18 / 0.45);
+  --panel-strong: rgb(7 17 31 / 0.94);
+  --glow-strength: 1;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --accent: oklch(0.5 0.13 var(--hue));
+  --ink: #f3f6fa;
+  --raised: #ffffff;
+  --text: #0b1220;
+  --soft: #334155;
+  --muted: #475569;
+  --faint: #94a3b8;
+  --support: #15803d;
+  --contra: #be123c;
+  --amber: #b45309;
+  --severe: #c2410c;
+  --noeffect: #94a3b8;
+  --panel: rgb(255 255 255 / 0.82);
+  --panel-quiet: rgb(255 255 255 / 0.6);
+  --panel-strong: rgb(255 255 255 / 0.97);
+  --glow-strength: 0;
+}
+
+/* Tailwind tokens read the runtime variables (inline so utilities use var() directly). */
+@theme inline {
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 
-  /* Core tokens */
-  --color-ink: #030812;          /* page background */
-  --color-raised: #07111f;       /* solid raised surfaces */
-  --color-cyan: #00f0ff;         /* the one accent */
-  --color-text: #e2e8f0;         /* primary text ≈15:1 */
-  --color-soft: #cbd5e1;         /* secondary body text ≈11:1 */
-  --color-muted: #94a3b8;        /* labels ≈7.6:1 */
-  --color-faint: #64748b;        /* decorative only, never meaningful text */
-  --color-support: #00ff66;      /* supports / up */
-  --color-contra: #ff3b5c;       /* contradicts / red flag / down */
-  --color-amber: #ffb000;        /* caution, disclaimer, "not sure" */
-  --color-severe: #ff8a3d;       /* high severity */
-  --color-noeffect: #475569;     /* symptoms with no effect */
-  --color-line: rgb(0 240 255 / 0.2);
+  --color-ink: var(--ink);
+  --color-raised: var(--raised);
+  --color-cyan: var(--accent); /* "cyan" = the accent colour, whatever hue is chosen */
+  --color-text: var(--text);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-support: var(--support);
+  --color-contra: var(--contra);
+  --color-amber: var(--amber);
+  --color-severe: var(--severe);
+  --color-noeffect: var(--noeffect);
+  --color-line: var(--line);
 
-  /* Legacy aliases (pre-redesign components) mapped onto the HUD palette */
-  --color-surface: #07111f;
-  --color-neon-cyan: #00f0ff;
-  --color-neon-blue: #00f0ff;
-  --color-neon-violet: #00f0ff;
-  --color-neon-pink: #ff3b5c;
-  --color-warn: #ffb000;
+  /* Legacy aliases kept for older class names */
+  --color-surface: var(--raised);
+  --color-neon-cyan: var(--accent);
+  --color-neon-blue: var(--accent);
+  --color-neon-violet: var(--accent);
+  --color-neon-pink: var(--contra);
+  --color-warn: var(--amber);
+}
 
+@theme {
   --ease-out-hud: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -60,17 +111,19 @@
   }
 }
 
-:root {
-  color-scheme: dark;
-}
-
 html {
-  background: var(--color-ink);
+  background: var(--ink);
 }
 
 body {
-  background: var(--color-ink);
-  color: var(--color-text);
+  background: var(--ink);
+  color: var(--text);
+  transition: background-color 0.24s var(--ease-out-hud), color 0.24s var(--ease-out-hud);
+}
+
+/* Display font: Cormorant Garamond reads best slightly heavier and tighter-tracked than the old condensed face. */
+.font-display {
+  font-feature-settings: "lnum" 1;
 }
 
 /* 40px HUD grid behind everything */
@@ -80,8 +133,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgb(0 240 255 / 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(0 240 255 / 0.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px);
   background-size: 40px 40px;
   z-index: 0;
 }
@@ -89,51 +142,51 @@ body::before {
 /* ---------- Surfaces ---------- */
 @utility hud {
   position: relative;
-  background: rgb(3 8 18 / 0.72);
-  border: 1px solid var(--color-line);
+  background: var(--panel);
+  border: 1px solid var(--line);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 @utility hud-quiet {
   position: relative;
-  background: rgb(3 8 18 / 0.45);
-  border: 1px solid rgb(0 240 255 / 0.12);
+  background: var(--panel-quiet);
+  border: 1px solid color-mix(in oklab, var(--accent) 14%, transparent);
 }
 @utility hud-strong {
-  background: rgb(7 17 31 / 0.94);
-  border: 1px solid var(--color-line);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 /* Legacy names kept for not-yet-migrated components */
 @utility glass {
-  background: rgb(3 8 18 / 0.72);
-  border: 1px solid var(--color-line);
+  background: var(--panel);
+  border: 1px solid var(--line);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 @utility glass-strong {
-  background: rgb(7 17 31 / 0.94);
-  border: 1px solid var(--color-line);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 @utility neon-text {
-  color: var(--color-cyan);
-  text-shadow: 0 0 18px rgb(0 240 255 / 0.55);
+  color: var(--accent);
+  text-shadow: 0 0 calc(18px * var(--glow-strength)) color-mix(in oklab, var(--accent) 55%, transparent);
 }
 @utility glow {
-  text-shadow: 0 0 18px rgb(0 240 255 / 0.55);
+  text-shadow: 0 0 calc(18px * var(--glow-strength)) color-mix(in oklab, var(--accent) 55%, transparent);
 }
 
 /* Tick rulers */
 @utility ruler-x {
   height: 6px;
-  background-image: repeating-linear-gradient(90deg, var(--color-line) 0 1px, transparent 1px 10px);
+  background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10px);
 }
 @utility ruler-y {
   width: 6px;
-  background-image: repeating-linear-gradient(180deg, var(--color-line) 0 1px, transparent 1px 10px);
+  background-image: repeating-linear-gradient(180deg, var(--line) 0 1px, transparent 1px 10px);
 }
 
 /* Data label: mono, 12px minimum, uppercase */
@@ -142,11 +195,16 @@ body::before {
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
 @utility skeleton {
-  background: linear-gradient(90deg, rgb(0 240 255 / 0.04) 25%, rgb(0 240 255 / 0.12) 50%, rgb(0 240 255 / 0.04) 75%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 4%, transparent) 25%,
+    color-mix(in oklab, var(--accent) 12%, transparent) 50%,
+    color-mix(in oklab, var(--accent) 4%, transparent) 75%
+  );
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }
@@ -169,23 +227,32 @@ body::before {
   cursor: pointer;
 }
 @utility btn-primary {
-  color: var(--color-cyan);
-  background: rgb(0 240 255 / 0.15);
-  border: 1px solid var(--color-cyan);
-  box-shadow: 0 0 10px rgb(0 240 255 / 0.2), inset 0 0 10px rgb(0 240 255 / 0.1);
-  &:hover:not(:disabled) { background: rgb(0 240 255 / 0.25); box-shadow: 0 0 20px rgb(0 240 255 / 0.4); }
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  border: 1px solid var(--accent);
+  box-shadow:
+    0 0 calc(10px * var(--glow-strength)) color-mix(in oklab, var(--accent) 20%, transparent),
+    inset 0 0 10px color-mix(in oklab, var(--accent) 10%, transparent);
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--accent) 25%, transparent);
+    box-shadow: 0 0 20px color-mix(in oklab, var(--accent) 40%, transparent);
+  }
   &:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
 }
 @utility btn-ghost {
-  color: var(--color-text);
-  background: rgb(0 240 255 / 0.05);
-  border: 1px solid var(--color-line);
-  &:hover:not(:disabled) { border-color: var(--color-cyan); color: var(--color-cyan); box-shadow: 0 0 15px rgb(0 240 255 / 0.3); }
+  color: var(--text);
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+  border: 1px solid var(--line);
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 15px color-mix(in oklab, var(--accent) 30%, transparent);
+  }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-cyan);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

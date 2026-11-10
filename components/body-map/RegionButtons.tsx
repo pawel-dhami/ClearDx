@@ -42,7 +42,7 @@ export function RegionButtons({ counts, active, highlighted, onSelect, onHover }
             aria-label={`${REGION_LABELS[r]}${on ? `, ${counts[r]} selected` : ""}`}
             className={`flex min-h-8 items-center justify-between gap-1 border px-1.5 text-left text-xs transition-colors ${
               lit
-                ? "border-cyan text-text shadow-[0_0_10px_rgb(0_240_255/0.3)]"
+                ? "border-cyan text-text shadow-[0_0_10px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
                 : on
                   ? "border-line bg-cyan/6 text-text"
                   : "border-cyan/12 text-muted hover:border-cyan hover:text-text"

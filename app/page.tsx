@@ -202,7 +202,7 @@ export default function Landing() {
 
         {/* ---------- 6. Final CTA ---------- */}
         <section aria-labelledby="cta-title" className="relative mx-auto w-full max-w-[1440px] overflow-hidden px-4 py-28 text-center sm:px-8 lg:py-32">
-          <div aria-hidden className="pointer-events-none absolute top-1/2 left-1/2 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(0_240_255/0.1),transparent_65%)]" />
+          <div aria-hidden className="pointer-events-none absolute top-1/2 left-1/2 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--accent)_10%,transparent),transparent_65%)]" />
           <Reveal className="relative">
             <h2 id="cta-title" className="font-display text-5xl leading-none font-bold tracking-[0.05em] uppercase sm:text-[64px]">
               Ready to see the <span className="text-cyan glow">reasoning</span>?

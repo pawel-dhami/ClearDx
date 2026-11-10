@@ -49,7 +49,7 @@ export function Segmented<T extends string>({
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(o)}
             className={`min-h-8 px-2.5 font-mono text-xs transition-colors ${i > 0 ? "border-l border-cyan/12" : ""} ${
-              on ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--color-cyan)]" : "text-soft hover:text-text"
+              on ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--accent)]" : "text-soft hover:text-text"
             }`}
           >
             {render(o)}
@@ -119,7 +119,7 @@ export function WhatIfSwitch({ on, onChange }: { on: boolean; onChange: (v: bool
     <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="flex min-h-8 items-center gap-2.5">
       <span className={`label ${on ? "!text-cyan" : ""}`}>What-if</span>
       <span className={`relative h-5 w-9 border transition-colors ${on ? "border-cyan bg-cyan/15" : "border-line"}`}>
-        <span className={`absolute top-0.5 size-3.5 transition-all ${on ? "left-[18px] bg-cyan shadow-[0_0_8px_var(--color-cyan)]" : "left-0.5 bg-muted"}`} />
+        <span className={`absolute top-0.5 size-3.5 transition-all ${on ? "left-[18px] bg-cyan shadow-[0_0_8px_var(--accent)]" : "left-0.5 bg-muted"}`} />
       </span>
     </button>
   );

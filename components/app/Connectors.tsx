@@ -42,9 +42,9 @@ export function Connectors({ counts, lit }: { counts: Record<Region, number>; li
           const ty = h * 0.16 + i * 22;
           const on = lit === r;
           return (
-            <g key={r} stroke={on ? "#00f0ff" : "rgb(0 240 255 / 0.4)"} strokeWidth={on ? 1.5 : 1} fill="none">
+            <g key={r} stroke={on ? "var(--accent)" : "color-mix(in oklab, var(--accent) 40%, transparent)"} strokeWidth={on ? 1.5 : 1} fill="none">
               <polyline points={`${x},${y} ${x + 36},${y} ${w - 40},${ty} ${w},${ty}`} />
-              <circle cx={x} cy={y} r={3} fill="#00f0ff" stroke="none" />
+              <circle cx={x} cy={y} r={3} fill="var(--accent)" stroke="none" />
             </g>
           );
         })}

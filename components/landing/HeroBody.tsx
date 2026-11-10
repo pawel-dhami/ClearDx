@@ -42,7 +42,7 @@ export function HeroBody({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       {!compact && !reduced && (
-        <div aria-hidden className="pointer-events-none absolute inset-x-[8%] z-[3] h-0.5 animate-scan bg-cyan shadow-[0_0_15px_5px_rgb(0_240_255/0.35)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-[8%] z-[3] h-0.5 animate-scan bg-cyan shadow-[0_0_15px_5px_color-mix(in_oklab,var(--accent)_35%,transparent)]" />
       )}
       {!compact && (
         <p aria-live="polite" className="pointer-events-none absolute top-4 right-0 z-10 text-right font-mono text-xs leading-6 tracking-[0.08em] text-muted uppercase">

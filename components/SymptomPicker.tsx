@@ -84,7 +84,7 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
                 transition={springs.snappy}
                 className={`flex min-h-9 items-center gap-1.5 rounded-[2px] border px-3 text-sm transition-colors ${
                   on
-                    ? "border-cyan bg-cyan/12 text-text shadow-[0_0_12px_rgb(0_240_255/0.3)]"
+                    ? "border-cyan bg-cyan/12 text-text shadow-[0_0_12px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
                     : "border-line text-soft hover:border-cyan hover:text-text"
                 }`}
               >

@@ -25,10 +25,10 @@ export default function BodyMap2D({ counts, active, hovered, onSelect, onHover }
     <svg viewBox="0 0 140 200" className="h-full w-full" role="group" aria-label="Body map, 2D">
       <defs>
         <pattern id="dots" width="2.4" height="2.4" patternUnits="userSpaceOnUse">
-          <circle cx="1.2" cy="1.2" r="0.55" fill="#00f0ff" />
+          <circle cx="1.2" cy="1.2" r="0.55" fill="var(--accent)" />
         </pattern>
         <pattern id="dots-strong" width="2" height="2" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.75" fill="#00f0ff" />
+          <circle cx="1" cy="1" r="0.75" fill="var(--accent)" />
         </pattern>
       </defs>
       {SPATIAL_REGIONS.map((r) => {
@@ -56,12 +56,12 @@ export default function BodyMap2D({ counts, active, hovered, onSelect, onHover }
             {shapes.map((s, i) =>
               s.t === "e" ? (
                 <ellipse key={i} cx={X(s.cx)} cy={Y(s.cy)} rx={s.rx * 200} ry={s.ry * 200} fill={paint}
-                  stroke={lit ? "#00f0ff" : "rgba(0,240,255,.35)"} strokeWidth={lit ? 0.8 : 0.4} />
+                  stroke={lit ? "var(--accent)" : "color-mix(in oklab, var(--accent) 35%, transparent)"} strokeWidth={lit ? 0.8 : 0.4} />
               ) : (
                 <g key={i}>
-                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke={lit ? "#00f0ff" : "rgba(0,240,255,.35)"}
+                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke={lit ? "var(--accent)" : "color-mix(in oklab, var(--accent) 35%, transparent)"}
                     strokeWidth={s.w * 400 + (lit ? 1.6 : 0.8)} strokeLinecap="round" />
-                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke="#030812" strokeWidth={s.w * 400} strokeLinecap="round" />
+                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke="var(--ink)" strokeWidth={s.w * 400} strokeLinecap="round" />
                   <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke={paint} strokeWidth={s.w * 400} strokeLinecap="round" />
                 </g>
               ),

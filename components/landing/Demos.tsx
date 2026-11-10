@@ -38,9 +38,9 @@ export function StepPickScene() {
   return (
     <div className="flex h-32 items-center gap-5 border border-cyan/12 bg-cyan/[0.03] px-5" aria-hidden>
       <svg width="44" height="96" viewBox="0 0 44 96">
-        <circle cx="22" cy="10" r="8" fill="none" stroke="#00f0ff" strokeOpacity=".5" />
-        <rect x="10" y="22" width="24" height="30" fill="rgb(0 240 255 / 0.25)" stroke="#00f0ff" />
-        <rect x="12" y="54" width="20" height="40" fill="none" stroke="#00f0ff" strokeOpacity=".4" />
+        <circle cx="22" cy="10" r="8" fill="none" stroke="var(--accent)" strokeOpacity=".5" />
+        <rect x="10" y="22" width="24" height="30" fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)" />
+        <rect x="12" y="54" width="20" height="40" fill="none" stroke="var(--accent)" strokeOpacity=".4" />
       </svg>
       <ul className="flex flex-col gap-1.5">
         {["Fever", "Cough", "Muscle aches"].map((s, i) => (
@@ -85,18 +85,18 @@ export function StepPredictScene() {
 export function StepWhyScene() {
   const reduced = useReducedMotion();
   const edges = [
-    { d: "M64 30 C140 30 150 66 220 66", c: "#00ff66", w: 5 },
-    { d: "M64 66 L220 66", c: "#00ff66", w: 5 },
-    { d: "M70 102 C140 102 150 70 220 70", c: "#ff3b5c", w: 2.5, dash: "6 5" },
+    { d: "M64 30 C140 30 150 66 220 66", c: "var(--support)", w: 5 },
+    { d: "M64 66 L220 66", c: "var(--support)", w: 5 },
+    { d: "M70 102 C140 102 150 70 220 70", c: "var(--contra)", w: 2.5, dash: "6 5" },
   ];
   return (
     <div className="h-32 border border-cyan/12 bg-cyan/[0.03]" aria-hidden>
       <svg viewBox="0 0 300 132" className="h-full w-full">
-        <g fontSize="11" fill="#94a3b8" style={{ fontFamily: "var(--font-mono)" }}>
+        <g fontSize="11" fill="var(--muted)" style={{ fontFamily: "var(--font-mono)" }}>
           <text x="12" y="34">FEVER</text>
           <text x="12" y="70">ACHES</text>
           <text x="12" y="106">SNEEZE</text>
-          <text x="232" y="70" fill="#e2e8f0">INFLUENZA</text>
+          <text x="232" y="70" fill="var(--text)">INFLUENZA</text>
         </g>
         {edges.map((e, i) => (
           <motion.path
@@ -111,7 +111,7 @@ export function StepWhyScene() {
             transition={reduced ? { duration: 0 } : { duration: 1, delay: i * 0.3, repeat: Infinity, repeatDelay: 2, ease: [0.22, 1, 0.36, 1] }}
           />
         ))}
-        <circle cx="220" cy="66" r="6" fill="#00f0ff" />
+        <circle cx="220" cy="66" r="6" fill="var(--accent)" />
       </svg>
     </div>
   );

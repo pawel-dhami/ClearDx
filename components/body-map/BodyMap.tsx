@@ -121,7 +121,7 @@ export function BodyStage({
       </div>
 
       {scanning && !reduced && (
-        <div aria-hidden className="pointer-events-none absolute inset-x-[8%] z-[3] h-0.5 animate-scan bg-cyan shadow-[0_0_15px_5px_rgb(0_240_255/0.35)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-[8%] z-[3] h-0.5 animate-scan bg-cyan shadow-[0_0_15px_5px_color-mix(in_oklab,var(--accent)_35%,transparent)]" />
       )}
       {overlay}
 
@@ -153,7 +153,7 @@ export function BodyStage({
                 role="radio"
                 aria-checked={mode === m}
                 onClick={() => setUserMode(m)}
-                className={`min-h-8 px-2.5 font-mono text-xs uppercase ${mode === m ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--color-cyan)]" : "text-muted hover:text-text"}`}
+                className={`min-h-8 px-2.5 font-mono text-xs uppercase ${mode === m ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--accent)]" : "text-muted hover:text-text"}`}
               >
                 {m}
               </button>

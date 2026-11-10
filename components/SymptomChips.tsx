@@ -194,9 +194,9 @@ function ChipFace({
     ? `${off ? "Excluded" : "Included"}. Click to ${off ? "include" : "exclude"}; arrow keys reorder.`
     : "Drag or use arrow keys to reorder, Delete to remove.";
   const tone = lifted
-    ? "border-cyan bg-raised shadow-[0_10px_30px_-8px_rgb(0_240_255/0.55)]"
+    ? "border-cyan bg-raised shadow-[0_10px_30px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
     : highlighted
-      ? "border-cyan bg-cyan/14 shadow-[0_0_12px_rgb(0_240_255/0.35)]"
+      ? "border-cyan bg-cyan/14 shadow-[0_0_12px_color-mix(in_oklab,var(--accent)_35%,transparent)]"
       : off
         ? "border-dashed border-noeffect bg-transparent text-muted"
         : noEffect
