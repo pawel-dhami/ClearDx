@@ -109,11 +109,10 @@ function Cloud({ counts, active, hovered, scanning, onHover, onSelect, reduced, 
     <group
       ref={group}
       onPointerMove={(e) => {
-        if (hero) return;
         const r = regionAt(e);
         if (r !== live.current.hovered) onHover(r);
       }}
-      onPointerOut={() => !hero && onHover(null)}
+      onPointerOut={() => onHover(null)}
       onClick={(e) => {
         if (hero || e.delta > 4) return;
         const r = regionAt(e);
