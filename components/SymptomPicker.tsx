@@ -45,24 +45,24 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 16, scale: 0.96 }}
       transition={springs.gentle}
-      className="glass-strong absolute inset-x-0 bottom-0 z-20 max-h-[85%] overflow-y-auto overscroll-contain rounded-2xl p-4"
+      className="hud-strong absolute inset-x-3 bottom-3 z-20 max-h-[80%] overflow-y-auto overscroll-contain p-4"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium">
-          <span className="neon-text">{REGION_LABELS[region]}</span>
-          <span className="ml-2 text-xs text-muted">select all that apply</span>
+        <h3 className="flex items-baseline gap-3">
+          <span className="font-display text-lg font-bold tracking-[0.06em] text-cyan uppercase">{REGION_LABELS[region]}</span>
+          <span className="label">Select all that apply</span>
         </h3>
         <motion.button
           onClick={closeAndRestore}
           whileTap={{ scale: 0.9 }}
           aria-label="Close symptom picker"
-          className="grid size-7 place-items-center rounded-full text-muted hover:bg-white/5 hover:text-text"
+          className="grid size-8 place-items-center border border-line text-muted hover:border-cyan hover:text-cyan"
         >
           ✕
         </motion.button>
       </div>
       <motion.ul
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-1.5"
         initial="hidden"
         animate="show"
         variants={{ show: { transition: { staggerChildren: 0.025 } } }}
@@ -82,10 +82,10 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                className={`flex min-h-9 items-center gap-1.5 rounded-[2px] border px-3 text-sm transition-colors ${
                   on
-                    ? "border-neon-cyan/70 bg-neon-cyan/15 text-text shadow-[0_0_16px_-4px_rgba(94,234,212,.6)]"
-                    : "border-line bg-white/[0.02] text-muted hover:border-white/20 hover:text-text"
+                    ? "border-cyan bg-cyan/12 text-text shadow-[0_0_12px_rgb(0_240_255/0.3)]"
+                    : "border-line text-soft hover:border-cyan hover:text-text"
                 }`}
               >
                 <motion.span
@@ -93,7 +93,7 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
                   initial={false}
                   animate={{ scale: on ? 1 : 0, width: on ? 12 : 0 }}
                   transition={springs.snappy}
-                  className="overflow-hidden text-neon-cyan"
+                  className="overflow-hidden text-cyan"
                 >
                   ✓
                 </motion.span>
