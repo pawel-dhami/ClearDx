@@ -114,9 +114,11 @@ interface TopPredictionProps {
   highlight: Highlight;
   onHighlight: (h: Highlight) => void;
   updating?: boolean;
+  /** Header actions, e.g. the report download. */
+  actions?: React.ReactNode;
 }
 
-export function TopPrediction({ prediction: p, before, excludedLabel, delta, noEffect, highlight, onHighlight, updating }: TopPredictionProps) {
+export function TopPrediction({ prediction: p, before, excludedLabel, delta, noEffect, highlight, onHighlight, updating, actions }: TopPredictionProps) {
   const supports = p.contributions.filter((c) => c.weight > 0).sort((a, b) => b.weight - a.weight).slice(0, 3);
   const against = p.contributions.filter((c) => c.weight < 0).sort((a, b) => a.weight - b.weight).slice(0, 2);
   const lit = highlightedConditions(highlight).includes(p.condition);
@@ -131,7 +133,10 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
       <Corners />
       <div className="flex items-center justify-between gap-3">
         <PanelTitle id="top-title">Top match</PanelTitle>
-        <span className="label">{updating ? <span className="text-cyan">Updating…</span> : delta !== undefined ? "Δ vs previous run" : ""}</span>
+        <div className="flex items-center gap-3">
+          <span className="label">{updating ? <span className="text-cyan">Updating…</span> : delta !== undefined ? "Δ vs previous run" : ""}</span>
+          {actions}
+        </div>
       </div>
       <div className={`mt-3 flex flex-col items-start gap-5 transition-opacity sm:flex-row sm:items-center sm:gap-6 ${updating ? "opacity-70" : ""}`}>
         <ConfidenceRing value={p.confidence} before={showWhatIf ? before : null} />

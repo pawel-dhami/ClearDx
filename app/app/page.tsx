@@ -14,6 +14,7 @@ import {
 } from "@/components/app/Predictions";
 import { BodyStage, useBodyEnvironment } from "@/components/body-map/BodyMap";
 import { RegionButtons } from "@/components/body-map/RegionButtons";
+import { ReportButton } from "@/components/app/ReportButton";
 import { ContributionGraph, GraphLegend, type ExtraSymptom } from "@/components/ContributionGraph";
 import { Disclaimer } from "@/components/Disclaimer";
 import { FollowUpCards, type AnswerFeedback, type AnswerValue } from "@/components/FollowUpCards";
@@ -284,6 +285,21 @@ export default function PredictorApp() {
               highlight={highlight}
               onHighlight={setHover}
               updating={loading}
+              actions={
+                response && (
+                  <ReportButton
+                    disabled={loading}
+                    response={response}
+                    symptoms={symptoms}
+                    excluded={whatIf ? [...excluded] : []}
+                    noEffect={sentNoEffect}
+                    age={age}
+                    sex={sex}
+                    duration={duration}
+                    answers={answers}
+                  />
+                )
+              }
             />
           ) : (
             <TopPredictionEmpty />
