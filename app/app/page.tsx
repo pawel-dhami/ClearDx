@@ -80,6 +80,15 @@ export default function PredictorApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [whatIf, key, run]);
 
+  // On phones the picker lives in the collapsible body stage: opening a region also opens the stage.
+  const selectRegion = (reg: Region | null) => {
+    setActiveRegion(reg);
+    if (reg && small && !mobileStage) {
+      setMobileStage(true);
+      requestAnimationFrame(() => document.getElementById("mobile-stage")?.scrollIntoView({ block: "center" }));
+    }
+  };
+
   const toggleSymptom = (label: string) => {
     setSymptoms((s) => (s.includes(label) ? s.filter((x) => x !== label) : [...s, label]));
     setExcluded((e) => {
@@ -164,7 +173,7 @@ export default function PredictorApp() {
     <BodyStage
       counts={counts}
       activeRegion={activeRegion}
-      onSelectRegion={setActiveRegion}
+      onSelectRegion={selectRegion}
       highlightRegion={hoverRegion ?? regionFromHighlight}
       onHoverRegion={onHoverRegion}
       scanning={loading}
@@ -233,7 +242,7 @@ export default function PredictorApp() {
               </button>
             )}
           </div>
-          <RegionButtons counts={counts} active={activeRegion} highlighted={hoverRegion ?? regionFromHighlight} onSelect={(reg) => setActiveRegion((c) => (c === reg ? null : reg))} onHover={onHoverRegion} />
+          <RegionButtons counts={counts} active={activeRegion} highlighted={hoverRegion ?? regionFromHighlight} onSelect={(reg) => selectRegion(activeRegion === reg ? null : reg)} onHover={onHoverRegion} />
           <div className="min-h-0 flex-1 overflow-auto">
             <SymptomChips
               symptoms={symptoms}
