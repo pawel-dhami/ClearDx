@@ -1,22 +1,29 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BodyMap } from "@/components/body-map/BodyMap";
-import { ContributionGraph, GraphLegend } from "@/components/ContributionGraph";
+import { AboutStrip, WhatIfSwitch } from "@/components/app/AboutStrip";
+import { Connectors } from "@/components/app/Connectors";
+import { MobileBodyHeader } from "@/components/app/MobileBodyHeader";
+import {
+  RedFlagStrip,
+  SecondaryPredictions,
+  TopPrediction,
+  TopPredictionEmpty,
+  TopPredictionError,
+  TopPredictionSkeleton,
+} from "@/components/app/Predictions";
+import { BodyStage, useBodyEnvironment } from "@/components/body-map/BodyMap";
+import { RegionButtons } from "@/components/body-map/RegionButtons";
+import { ContributionGraph, GraphLegend, type ExtraSymptom } from "@/components/ContributionGraph";
 import { Disclaimer } from "@/components/Disclaimer";
-import { Nav } from "@/components/site/Nav";
-import { FollowUpCards } from "@/components/FollowUpCards";
-import { PredictionCards, PredictionCardsSkeleton } from "@/components/PredictionCards";
-import { ProfileForm } from "@/components/ProfileForm";
+import { FollowUpCards, type AnswerFeedback, type AnswerValue } from "@/components/FollowUpCards";
 import { ReasoningTimeline } from "@/components/ReasoningTimeline";
-import { RedFlags } from "@/components/Results";
 import { SymptomChips } from "@/components/SymptomChips";
-import { Panel } from "@/components/ui/Panel";
-import type { Highlight } from "@/lib/explain";
-import { springs } from "@/lib/motion";
+import { Corners, PanelTitle } from "@/components/site/Hud";
+import { Nav } from "@/components/site/Nav";
+import { compare, highlightedSymptoms, noEffectSymptoms, pct, referencesIn, sortByConfidence, type Highlight } from "@/lib/explain";
 import type { Duration, FollowUpAnswer, PredictInput, Sex } from "@/lib/predict/types";
-import { findSymptom, REGIONS, type Region } from "@/lib/symptoms";
+import { findSymptom, REGIONS, symptomsInRegion, type Region } from "@/lib/symptoms";
 import { inputKey, usePrediction } from "@/lib/usePrediction";
 
 const WHAT_IF_DEBOUNCE_MS = 600;
@@ -29,18 +36,23 @@ export default function PredictorApp() {
   const [answers, setAnswers] = useState<FollowUpAnswer[]>([]);
   const [whatIf, setWhatIf] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
-  const { response, previous, loading, error, run } = usePrediction();
+  const [activeRegion, setActiveRegion] = useState<Region | null>(null);
+  const [hoverRegion, setHoverRegion] = useState<Region | null>(null);
+  const [step, setStep] = useState<number | null>(null);
+  const [pendingAnswer, setPendingAnswer] = useState<AnswerValue | null>(null);
+  const [mobileStage, setMobileStage] = useState(false);
+  const { response, previous, baseline, loading, error, run } = usePrediction();
+  const { small } = useBodyEnvironment();
   const revealResults = useRef(false);
 
   // After a manual Analyze on stacked layouts, bring the results into view once.
   useEffect(() => {
     if (!response || !revealResults.current) return;
     revealResults.current = false;
-    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document.getElementById("predictions")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    document.getElementById("results")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   }, [response]);
 
   const counts = useMemo(() => {
@@ -53,20 +65,15 @@ export default function PredictorApp() {
   }, [symptoms]);
 
   // Symptoms actually sent to the predictor (what-if can exclude some).
-  const active = useMemo(
-    () => (whatIf ? symptoms.filter((s) => !excluded.has(s)) : symptoms),
-    [symptoms, excluded, whatIf],
-  );
-  const input: PredictInput = useMemo(
-    () => ({ symptoms: active, age, sex, duration, answers }),
-    [active, age, sex, duration, answers],
-  );
+  const active = useMemo(() => (whatIf ? symptoms.filter((s) => !excluded.has(s)) : symptoms), [symptoms, excluded, whatIf]);
+  const input: PredictInput = useMemo(() => ({ symptoms: active, age, sex, duration, answers }), [active, age, sex, duration, answers]);
   const key = inputKey(input);
+  const allIncluded = !whatIf || excluded.size === 0;
 
-  // What-if: any change to the input re-runs the prediction, debounced.
+  // What-if: any change re-runs the prediction, debounced. Runs with every symptom included become the new "before".
   useEffect(() => {
     if (!whatIf || input.symptoms.length === 0) return;
-    const t = setTimeout(() => void run(input, { skipIfUnchanged: true }), WHAT_IF_DEBOUNCE_MS);
+    const t = setTimeout(() => void run(input, { skipIfUnchanged: true, asBaseline: allIncluded }), WHAT_IF_DEBOUNCE_MS);
     return () => clearTimeout(t);
     // `key` captures every field of `input`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,53 +88,97 @@ export default function PredictorApp() {
       return n;
     });
   };
-
-  const toggleExcluded = (label: string) =>
+  const toggleExcluded = (label: string) => {
+    setPendingAnswer(null);
     setExcluded((e) => {
       const n = new Set(e);
       if (n.has(label)) n.delete(label);
       else n.add(label);
       return n;
     });
-
+  };
   const setWhatIfMode = (on: boolean) => {
     setWhatIf(on);
     if (!on) setExcluded(new Set());
   };
-
   const analyze = () => {
     revealResults.current = true;
     setAnswers([]);
-    void run({ ...input, answers: [] });
+    setPendingAnswer(null);
+    setStep(null);
+    void run({ ...input, answers: [] }, { asBaseline: allIncluded });
   };
-
-  const updateAnswers = (next: FollowUpAnswer[]) => {
+  const updateAnswers = (next: FollowUpAnswer[], value: AnswerValue | null) => {
     setAnswers(next);
+    setPendingAnswer(value);
     // In what-if mode the debounced effect picks this up; otherwise run now.
-    if (!whatIf) void run({ ...input, answers: next });
+    if (!whatIf) void run({ ...input, answers: next }, { asBaseline: true });
   };
-  const answer = (question: string, value: "yes" | "no") =>
-    updateAnswers([...answers.filter((a) => a.question !== question), { question, answer: value }]);
-  const undo = (question: string) => updateAnswers(answers.filter((a) => a.question !== question));
+  const answer = (question: string, value: AnswerValue) =>
+    updateAnswers([...answers.filter((a) => a.question !== question), { question, answer: value }], value);
+  const undo = (question: string) => updateAnswers(answers.filter((a) => a.question !== question), null);
 
+  // ---------- derived result views ----------
   const r = response?.result;
-  const announcement = useMemo(() => {
-    if (!r) return "";
-    const top = [...r.predictions].sort((a, b) => b.confidence - a.confidence)[0];
-    const flags = r.red_flags.length ? ` ${r.red_flags.length} red flag${r.red_flags.length === 1 ? "" : "s"}.` : "";
-    return `Results updated. Top match: ${top.condition}, ${Math.round(top.confidence * 100)} percent.${flags}`;
-  }, [r]);
-  const highlightedSymptom = highlight?.kind === "symptom" ? highlight.id : null;
+  const ranked = r ? sortByConfidence(r) : [];
+  const top = ranked[0] ?? null;
+  const cmp = r ? compare(r, previous?.result) : null;
+  const deltas = new Map<string, number | null>([...(cmp?.deltas ?? new Map())].map(([k, v]) => [k, v.delta]));
+  const showWhatIf = whatIf && excluded.size > 0 && !!baseline;
+  const before = showWhatIf ? new Map(baseline!.result.predictions.map((p) => [p.condition, p.confidence])) : null;
+  const sentNoEffect = r ? noEffectSymptoms(r, active) : [];
+  const extras: ExtraSymptom[] = [
+    ...sentNoEffect.map((label) => ({ label, tag: "no effect" as const })),
+    ...(whatIf ? [...excluded].filter((s) => symptoms.includes(s)).map((label) => ({ label, tag: "excluded" as const })) : []),
+  ];
+  const feedback: AnswerFeedback | null =
+    pendingAnswer && !loading && top && previous ? { answer: pendingAnswer, condition: top.condition, delta: pct(top.confidence) - pct(previous.result.predictions.find((p) => p.condition === top.condition)?.confidence ?? top.confidence), after: pct(top.confidence) } : null;
+
+  // Reasoning step selection → highlight what it mentions.
+  const selectStep = (i: number | null) => {
+    setStep(i);
+    if (i === null || !r) return setHighlight(null);
+    const refs = referencesIn(r.reasoning_steps[i], symptoms, r.predictions.map((p) => p.condition));
+    setHighlight({ kind: "refs", ...refs });
+  };
+  const setHover = (h: Highlight) => {
+    if (step !== null && h === null && r) return selectStep(step); // keep the step's highlight when hover ends
+    setHighlight(h);
+  };
+
+  // Body ↔ symptoms: hovering a region lights its chips; hovering a symptom lights its region.
+  const litSymptoms = highlightedSymptoms(highlight);
+  const regionFromHighlight = litSymptoms.length === 1 ? (findSymptom(litSymptoms[0])?.region ?? null) : null;
+  const onHoverRegion = (reg: Region | null) => {
+    setHoverRegion(reg);
+    if (step !== null) return;
+    setHighlight(reg ? { kind: "refs", symptoms: symptoms.filter((s) => findSymptom(s)?.region === reg), conditions: [] } : null);
+  };
+
+  const flagNote = r?.red_flags.length ? ` ${r.red_flags.length} red flag${r.red_flags.length === 1 ? "" : "s"}.` : "";
+  const announcement = top ? `Results updated. Top match: ${top.condition}, ${pct(top.confidence)} percent.${flagNote}` : "";
+
+  const firstExcluded = [...excluded][0];
+  const stage = (
+    <BodyStage
+      counts={counts}
+      activeRegion={activeRegion}
+      onSelectRegion={setActiveRegion}
+      highlightRegion={hoverRegion ?? regionFromHighlight}
+      onHoverRegion={onHoverRegion}
+      scanning={loading}
+      selected={symptoms}
+      onToggleSymptom={toggleSymptom}
+      overlay={top && !loading && !small ? <Connectors counts={counts} lit={regionFromHighlight} /> : undefined}
+      className="h-full min-h-[380px]"
+    />
+  );
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-screen max-w-[1440px] flex-col gap-4 pb-4">
-      <a
-        href="#predictions"
-        className="sr-only rounded-xl bg-surface px-4 py-2 text-sm text-neon-cyan focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50"
-      >
+    <div className="relative z-10 flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+      <a href="#results" className="sr-only bg-raised px-4 py-2 text-sm text-cyan focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">
         Skip to results
       </a>
-      {/* One concise announcement per result, instead of re-reading every animated card. */}
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}
       </p>
@@ -135,7 +186,7 @@ export default function PredictorApp() {
         compact
         right={
           response && (
-            <span className="border border-amber/45 px-2 py-1 font-mono text-[11px] text-amber">
+            <span className="border border-amber/45 px-2 py-1 font-mono text-[11px] tracking-[0.06em] text-amber">
               {response.source === "mock" ? "MOCK MODE · DEMO DATA" : "LIVE · GROQ"}
             </span>
           )
@@ -143,220 +194,174 @@ export default function PredictorApp() {
       />
       <h1 className="sr-only">ClearDx symptom predictor</h1>
 
-      <motion.main
-        initial="hidden"
-        animate="show"
-        variants={{ show: { transition: { staggerChildren: 0.07 } } }}
-        className="grid flex-1 grid-cols-1 gap-4 px-3 md:grid-cols-2 lg:grid-cols-12 lg:px-6"
-      >
-        <Panel id="body" title="Body map" className="md:row-span-2 lg:col-span-5 lg:row-span-3 lg:self-start">
-          <BodyMap selected={symptoms} counts={counts} scanning={loading} onToggle={toggleSymptom} />
-        </Panel>
+      {small && (
+        <MobileBodyHeader counts={counts} top={top} loading={loading} error={!!error} expanded={mobileStage} onToggle={() => setMobileStage((v) => !v)} />
+      )}
 
-        <Panel id="profile" title="About you" accent="violet" className="lg:col-span-7">
-          <ProfileForm age={age} sex={sex} duration={duration} onAge={setAge} onSex={setSex} onDuration={setDuration} />
-        </Panel>
-
-        <Panel
-          id="symptoms"
-          title={`Symptoms${symptoms.length ? ` · ${symptoms.length}` : ""}`}
-          className="lg:col-span-7"
-          aside={
-            <div className="flex items-center gap-3">
-              {symptoms.length > 0 && (
-                <button
-                  onClick={() => {
-                    setSymptoms([]);
-                    setExcluded(new Set());
-                  }}
-                  className="text-xs text-muted hover:text-contra"
-                >
-                  Clear all
-                </button>
-              )}
-              <WhatIfSwitch on={whatIf} onChange={setWhatIfMode} />
-            </div>
-          }
-        >
-          <div className="flex h-full flex-col gap-4">
-            <div className="flex-1">
-              <SymptomChips
-                symptoms={symptoms}
-                onReorder={setSymptoms}
-                onRemove={toggleSymptom}
-                whatIf={whatIf}
-                disabled={excluded}
-                onToggleEnabled={toggleExcluded}
-                highlighted={highlightedSymptom}
-              />
-            </div>
-            <div className="flex min-h-10 flex-wrap items-center justify-between gap-3">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={whatIf ? "w" : "n"}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={springs.snappy}
-                  className="text-xs text-muted"
-                >
-                  {whatIf ? (
-                    <>
-                      <span className="text-neon-cyan">What-if is on.</span> Tap a symptom to leave it out; results
-                      update live.
-                      {excluded.size > 0 && ` ${excluded.size} excluded.`}
-                    </>
-                  ) : symptoms.length > 1 ? (
-                    "Drag to rank by how much each bothers you."
-                  ) : (
-                    ""
-                  )}
-                </motion.p>
-              </AnimatePresence>
-              {!whatIf && (
-                <motion.button
-                  onClick={analyze}
-                  disabled={symptoms.length === 0 || loading}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={springs.snappy}
-                  className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-neon-cyan to-neon-violet px-5 py-2.5 text-sm font-semibold text-ink shadow-[0_10px_30px_-10px_rgba(94,234,212,.8)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
-                >
-                  {loading && <span aria-hidden className="skeleton absolute inset-0 rounded-none! opacity-60" />}
-                  <span className="relative">{loading ? "Analyzing…" : response ? "Re-analyze" : "Analyze symptoms"}</span>
-                </motion.button>
-              )}
-            </div>
-          </div>
-        </Panel>
-
-        <Panel
-          id="predictions"
-          focusTarget
-          title="Likely conditions"
-          className="md:col-span-2 lg:col-span-7"
-          aside={
-            <AnimatePresence>
-              {loading && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center gap-1.5 text-xs text-neon-cyan"
-                >
-                  <span className="size-1.5 animate-ping rounded-full bg-neon-cyan" /> updating
-                </motion.span>
-              )}
-              {!loading && previous && r && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[11px] text-muted">
-                  Δ vs previous run
-                </motion.span>
-              )}
-            </AnimatePresence>
-          }
-        >
-          <div aria-busy={loading}>
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  role="alert"
-                  initial={{ opacity: 0, y: -6, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={springs.gentle}
-                  className="overflow-hidden"
-                >
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-contra/40 bg-contra/10 p-3 text-sm text-rose-100">
-                    <span>{error}</span>
-                    {input.symptoms.length > 0 && (
-                      <button
-                        onClick={() => void run(input)}
-                        className="rounded-lg border border-contra/50 px-3 py-1 text-xs hover:bg-contra/20"
-                      >
-                        Retry
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {whatIf && active.length === 0 && symptoms.length > 0 && (
-              <p className="mb-3 text-xs text-warn">All symptoms are excluded. Include at least one to predict.</p>
+      <div className="px-3 pt-3 lg:px-6">
+        <AboutStrip age={age} sex={sex} duration={duration} onAge={setAge} onSex={setSex} onDuration={setDuration}>
+          {symptoms.length > 0 && <WhatIfSwitch on={whatIf} onChange={setWhatIfMode} />}
+          <button type="button" onClick={analyze} disabled={symptoms.length === 0 || active.length === 0 || loading} className="btn btn-primary">
+            {loading ? (
+              <>
+                <svg className="size-3.5 animate-spin" viewBox="0 0 14 14" aria-hidden>
+                  <circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="20 20" />
+                </svg>
+                Analyzing
+              </>
+            ) : response ? (
+              "Re-analyze"
+            ) : (
+              "Analyze"
             )}
-            {loading && !r ? (
-              <PredictionCardsSkeleton />
-            ) : r ? (
-              <div className={`transition-opacity ${loading ? "opacity-70" : ""}`}>
-                <PredictionCards
-                  result={r}
-                  previous={previous?.result ?? null}
-                  expanded={expanded}
-                  onExpand={setExpanded}
-                  highlight={highlight}
-                  onHighlight={setHighlight}
-                />
+          </button>
+        </AboutStrip>
+      </div>
+
+      <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 lg:grid lg:grid-cols-[320px_360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_276px] lg:px-6">
+        {/* ---------- Symptoms ---------- */}
+        <section aria-labelledby="sym-title" className="hud flex min-h-0 flex-col gap-3 p-4 lg:col-start-1 lg:row-start-1">
+          <Corners only={["tl", "br"]} />
+          <div className="flex items-center justify-between">
+            <PanelTitle id="sym-title">
+              Symptoms{symptoms.length ? <span className="text-text"> · {symptoms.length}</span> : null}
+            </PanelTitle>
+            {symptoms.length > 0 && (
+              <button type="button" onClick={() => (setSymptoms([]), setExcluded(new Set()))} className="font-mono text-xs text-muted hover:text-contra">
+                CLEAR
+              </button>
+            )}
+          </div>
+          <RegionButtons counts={counts} active={activeRegion} highlighted={hoverRegion ?? regionFromHighlight} onSelect={(reg) => setActiveRegion((c) => (c === reg ? null : reg))} onHover={onHoverRegion} />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <SymptomChips
+              symptoms={symptoms}
+              onReorder={setSymptoms}
+              onRemove={toggleSymptom}
+              whatIf={whatIf}
+              disabled={excluded}
+              onToggleEnabled={toggleExcluded}
+              highlighted={litSymptoms}
+              noEffect={new Set(sentNoEffect)}
+              onHover={(s) => step === null && setHighlight(s ? { kind: "symptom", id: s } : null)}
+            />
+          </div>
+          <p className="text-[13px] text-soft">
+            {whatIf
+              ? excluded.size
+                ? `What-if: ${excluded.size} left out. Tap a symptom to include it again.`
+                : "What-if: tap a symptom to leave it out."
+              : symptoms.length > 1
+                ? "Drag to rank by how much each bothers you."
+                : activeRegion
+                  ? `Showing ${symptomsInRegion(activeRegion).length} options on the body.`
+                  : ""}
+          </p>
+        </section>
+
+        {/* ---------- Body stage ---------- */}
+        {!small && <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">{stage}</div>}
+        {small && mobileStage && (
+          <div id="mobile-stage" className="h-[440px]">
+            {stage}
+          </div>
+        )}
+
+        {/* ---------- Results ---------- */}
+        <div id="results" tabIndex={-1} className="flex min-h-0 scroll-mt-28 flex-col gap-3 outline-none lg:col-start-3 lg:row-start-1" aria-busy={loading}>
+          {r && <RedFlagStrip flags={r.red_flags} />}
+          {error ? (
+            <TopPredictionError message={error} onRetry={input.symptoms.length ? () => void run(input, { asBaseline: allIncluded }) : undefined} />
+          ) : loading && !top ? (
+            <TopPredictionSkeleton count={active.length} />
+          ) : top ? (
+            <TopPrediction
+              prediction={top}
+              before={before?.get(top.condition) ?? null}
+              excludedLabel={excluded.size === 1 ? firstExcluded : excluded.size > 1 ? `${excluded.size} symptoms` : undefined}
+              delta={deltas.get(top.condition)}
+              noEffect={sentNoEffect}
+              highlight={highlight}
+              onHighlight={setHover}
+              updating={loading}
+            />
+          ) : (
+            <TopPredictionEmpty />
+          )}
+          {loading && !top ? (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="skeleton h-[78px]" />
+              ))}
+            </ul>
+          ) : (
+            ranked.length > 1 && !error && <SecondaryPredictions predictions={ranked.slice(1, 4)} before={before} deltas={deltas} highlight={highlight} onHighlight={setHover} />
+          )}
+        </div>
+
+        {/* ---------- Follow-ups ---------- */}
+        <section aria-labelledby="fu-title" className="hud flex min-h-0 flex-col gap-2 p-4 lg:col-start-1 lg:row-start-2">
+          <Corners only={["tl", "br"]} />
+          <PanelTitle id="fu-title">Refine</PanelTitle>
+          {r && !error ? (
+            <FollowUpCards questions={r.follow_up_questions} answers={answers} disabled={loading} onAnswer={answer} onUndo={undo} feedback={feedback} />
+          ) : loading ? (
+            <div className="space-y-2" aria-hidden>
+              <div className="skeleton h-4" />
+              <div className="skeleton h-4 w-2/3" />
+              <div className="grid grid-cols-3 gap-2 pt-6">
+                <div className="skeleton h-10" />
+                <div className="skeleton h-10" />
+                <div className="skeleton h-10" />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-soft">Questions that sharpen the result appear here after an analysis.</p>
+          )}
+        </section>
+
+        {/* ---------- Why: graph + reasoning ---------- */}
+        <div className="flex min-h-0 flex-col gap-3 lg:col-start-3 lg:row-start-2 lg:grid lg:grid-cols-[minmax(0,1fr)_230px]">
+          <section aria-labelledby="graph-title" className="hud flex min-h-0 flex-col p-4">
+            <Corners only={["tl", "br"]} />
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <PanelTitle id="graph-title">Why</PanelTitle>
+              <GraphLegend />
+            </div>
+            {r && !error ? (
+              <ContributionGraph result={r} highlight={highlight} onHighlight={setHover} extras={extras} minHeight={200} />
+            ) : loading ? (
+              <div className="flex-1 space-y-3 pt-3" aria-hidden>
+                <div className="skeleton h-3" />
+                <div className="skeleton h-3 w-5/6" />
+                <div className="skeleton h-3 w-4/6" />
               </div>
             ) : (
-              <p className="py-6 text-center text-sm text-muted">
-                Add symptoms and press <span className="text-text">Analyze</span>, or turn on{" "}
-                <span className="text-text">What-if</span> for live updates.
-              </p>
+              <div className="grid min-h-[160px] flex-1 place-items-center border border-dashed border-cyan/15 text-center text-sm text-soft">
+                Lines from each symptom to each condition appear here.
+              </div>
             )}
-          </div>
-        </Panel>
+          </section>
+          <section aria-labelledby="rs-title" className="hud flex min-h-0 flex-col p-4">
+            <Corners only={["tl", "br"]} />
+            <PanelTitle id="rs-title" className="mb-2">
+              Reasoning
+            </PanelTitle>
+            {r && !error ? (
+              <ReasoningTimeline key={r.reasoning_steps.join("|")} steps={r.reasoning_steps} selected={step} onSelect={selectStep} />
+            ) : loading ? (
+              <div className="space-y-2" aria-hidden>
+                <div className="skeleton h-3" />
+                <div className="skeleton h-3 w-4/5" />
+              </div>
+            ) : (
+              <p className="text-sm text-soft">Each step appears one at a time. Click a step to see what it refers to.</p>
+            )}
+          </section>
+        </div>
+      </main>
 
-        {r && (
-          <div className="md:col-span-2 lg:col-span-12 empty:hidden">
-            <RedFlags flags={r.red_flags} />
-          </div>
-        )}
-
-        {r && (
-          <>
-            <Panel id="graph" title="Contribution graph" className="md:col-span-2 lg:col-span-7" aside={<GraphLegend />}>
-              <ContributionGraph result={r} highlight={highlight} onHighlight={setHighlight} />
-            </Panel>
-            <Panel id="reasoning" title="Reasoning" accent="violet" className="md:col-span-2 lg:col-span-5">
-              <ReasoningTimeline key={r.reasoning_steps.join("|")} steps={r.reasoning_steps} />
-            </Panel>
-            <Panel id="followups" title="Refine with follow-ups" className="md:col-span-2 lg:col-span-12">
-              <FollowUpCards
-                questions={r.follow_up_questions}
-                answers={answers}
-                disabled={loading}
-                onAnswer={answer}
-                onUndo={undo}
-              />
-            </Panel>
-          </>
-        )}
-      </motion.main>
-
-      <Disclaimer className="mx-3 lg:mx-6" />
+      <Disclaimer className="mx-3 mb-3 lg:mx-6" />
     </div>
-  );
-}
-
-function WhatIfSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className="flex items-center gap-2 text-xs text-muted hover:text-text"
-    >
-      <span className={on ? "text-neon-cyan" : ""}>What-if</span>
-      <span
-        className={`relative flex h-5 w-9 items-center rounded-full border p-0.5 transition-colors ${
-          on ? "justify-end border-neon-cyan/60 bg-neon-cyan/25" : "justify-start border-line bg-white/5"
-        }`}
-      >
-        <motion.span
-          layout
-          transition={springs.snappy}
-          className={`size-3.5 rounded-full ${on ? "bg-neon-cyan shadow-[0_0_10px_#5eead4]" : "bg-muted"}`}
-        />
-      </span>
-    </button>
   );
 }

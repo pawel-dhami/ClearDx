@@ -1,7 +1,19 @@
 import type { Prediction, PredictionResult } from "./predict/types";
 
-/** Element highlighted across the cards, graph and chips. */
-export type Highlight = { kind: "condition" | "symptom"; id: string } | null;
+/**
+ * Element(s) highlighted across the body, chips, cards and graph.
+ * - symptom / condition: hover or focus on one item
+ * - refs: a reasoning step selected; lights every symptom and condition it mentions
+ */
+export type Highlight =
+  | { kind: "condition" | "symptom"; id: string }
+  | { kind: "refs"; symptoms: string[]; conditions: string[] }
+  | null;
+
+export const highlightedSymptoms = (h: Highlight): string[] =>
+  !h ? [] : h.kind === "symptom" ? [h.id] : h.kind === "refs" ? h.symptoms : [];
+export const highlightedConditions = (h: Highlight): string[] =>
+  !h ? [] : h.kind === "condition" ? [h.id] : h.kind === "refs" ? h.conditions : [];
 
 export interface Delta {
   /** Change in confidence (0–1 scale); null when the condition is new. */
@@ -28,3 +40,21 @@ export function compare(current: PredictionResult, previous: PredictionResult | 
 }
 
 export const pct = (n: number) => Math.round(n * 100);
+
+export const sortByConfidence = (r: PredictionResult) => [...r.predictions].sort((a, b) => b.confidence - a.confidence);
+
+/** Symptoms that were sent but don't contribute to any returned condition. */
+export function noEffectSymptoms(result: PredictionResult, sent: string[]): string[] {
+  const used = new Set(result.predictions.flatMap((p) => p.contributions.map((c) => c.symptom.toLowerCase())));
+  return sent.filter((s) => !used.has(s.toLowerCase()));
+}
+
+/**
+ * Which symptoms and conditions a free-text reasoning step mentions.
+ * Works for mock and model output alike (plain case-insensitive matching).
+ */
+export function referencesIn(step: string, symptoms: string[], conditions: string[]) {
+  const text = step.toLowerCase();
+  const has = (label: string) => text.includes(label.toLowerCase());
+  return { symptoms: symptoms.filter(has), conditions: conditions.filter(has) };
+}

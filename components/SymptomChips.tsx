@@ -15,18 +15,6 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@d
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type KeyboardEvent, type Ref } from "react";
 import { springs } from "@/lib/motion";
-import { findSymptom, type Region } from "@/lib/symptoms";
-
-const REGION_DOT: Record<Region, string> = {
-  head: "bg-neon-cyan",
-  throat: "bg-sky-300",
-  chest: "bg-neon-blue",
-  abdomen: "bg-neon-violet",
-  pelvis: "bg-neon-pink",
-  limbs: "bg-emerald-300",
-  skin: "bg-amber-300",
-  general: "bg-slate-300",
-};
 
 interface SymptomChipsProps {
   symptoms: string[];
@@ -36,26 +24,20 @@ interface SymptomChipsProps {
   whatIf?: boolean;
   disabled?: Set<string>;
   onToggleEnabled?: (label: string) => void;
-  /** Symptom highlighted from the graph / cards. */
-  highlighted?: string | null;
+  /** Symptoms highlighted from the graph, reasoning or body. */
+  highlighted?: string[];
+  /** Symptoms that were sent but influence nothing. */
+  noEffect?: Set<string>;
+  onHover?: (label: string | null) => void;
 }
 
 /**
  * Draggable, removable chips. dnd-kit handles pointer dragging and hit-testing;
- * items are reordered live on drag-over and Motion's `layout` animates the reflow
- * with springs (dnd-kit transforms are intentionally unused). Keyboard reordering
- * is handled directly with arrow keys, since dnd-kit's KeyboardSensor cancels when
- * the live reorder moves the focused node.
+ * items reorder live on drag-over and Motion's `layout` animates the reflow
+ * (dnd-kit transforms are intentionally unused). Keyboard: arrow keys reorder,
+ * Delete/Backspace removes; in what-if mode Enter/Space or click toggles.
  */
-export function SymptomChips({
-  symptoms,
-  onReorder,
-  onRemove,
-  whatIf = false,
-  disabled,
-  onToggleEnabled,
-  highlighted,
-}: SymptomChipsProps) {
+export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, disabled, onToggleEnabled, highlighted = [], noEffect, onHover }: SymptomChipsProps) {
   const [dragging, setDragging] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -64,7 +46,6 @@ export function SymptomChips({
     const j = i + delta;
     if (i !== -1 && j >= 0 && j < symptoms.length) onReorder(arrayMove(symptoms, i, j));
   };
-
   const move = (from: string, to: string) => {
     const a = symptoms.indexOf(from);
     const b = symptoms.indexOf(to);
@@ -80,23 +61,19 @@ export function SymptomChips({
 
   if (symptoms.length === 0) {
     return (
-      <div className="grid h-full min-h-20 place-items-center rounded-2xl border border-dashed border-line text-center text-sm text-muted">
-        <p className="px-4">Click a body region to add symptoms. They&apos;ll appear here.</p>
+      <div className="grid h-full min-h-24 place-items-center border border-dashed border-cyan/18 p-4 text-center">
+        <div>
+          <p className="font-display text-lg font-semibold tracking-[0.05em] uppercase">No symptoms yet</p>
+          <p className="mt-1 text-sm text-soft">Choose a region above or point at the body.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={onStart}
-      onDragOver={onOver}
-      onDragEnd={onEnd}
-      onDragCancel={() => setDragging(null)}
-    >
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onStart} onDragOver={onOver} onDragEnd={onEnd} onDragCancel={() => setDragging(null)}>
       <SortableContext items={symptoms} strategy={rectSortingStrategy}>
-        <ul className="flex flex-wrap gap-2" aria-label="Selected symptoms, in order of importance">
+        <ul className="flex flex-wrap gap-1.5" aria-label="Selected symptoms, in order of importance">
           <AnimatePresence initial={false} mode="popLayout">
             {symptoms.map((s, i) => (
               <Chip
@@ -105,24 +82,21 @@ export function SymptomChips({
                 index={i}
                 ghost={dragging === s}
                 off={disabled?.has(s) ?? false}
+                noEffect={noEffect?.has(s) ?? false}
                 whatIf={whatIf}
-                highlighted={highlighted === s}
+                highlighted={highlighted.includes(s)}
                 onRemove={onRemove}
                 onNudge={nudge}
                 onToggle={onToggleEnabled}
+                onHover={onHover}
               />
             ))}
           </AnimatePresence>
         </ul>
       </SortableContext>
-      <DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(.2,.9,.3,1.2)" }}>
+      <DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(.22,1,.36,1)" }}>
         {dragging ? (
-          <motion.div
-            initial={{ scale: 1, rotate: 0 }}
-            animate={{ scale: 1.08, rotate: -2 }}
-            transition={springs.snappy}
-            className="cursor-grabbing"
-          >
+          <motion.div initial={{ scale: 1 }} animate={{ scale: 1.06 }} transition={springs.snappy} className="cursor-grabbing">
             <ChipFace label={dragging} index={symptoms.indexOf(dragging)} off={disabled?.has(dragging) ?? false} lifted />
           </motion.div>
         ) : null}
@@ -136,16 +110,18 @@ interface ChipProps {
   index: number;
   ghost: boolean;
   off: boolean;
+  noEffect: boolean;
   whatIf: boolean;
   highlighted: boolean;
   onRemove: (l: string) => void;
   onNudge: (l: string, delta: number) => void;
   onToggle?: (l: string) => void;
+  onHover?: (l: string | null) => void;
   /** AnimatePresence popLayout needs a ref on each direct child. */
   ref?: Ref<HTMLLIElement>;
 }
 
-function Chip({ label, index, ghost, off, whatIf, highlighted, onRemove, onNudge, onToggle, ref }: ChipProps) {
+function Chip({ label, index, ghost, off, noEffect, whatIf, highlighted, onRemove, onNudge, onToggle, onHover, ref }: ChipProps) {
   const { setNodeRef, listeners } = useSortable({ id: label });
   const setRefs = (el: HTMLLIElement | null) => {
     setNodeRef(el);
@@ -166,16 +142,19 @@ function Chip({ label, index, ghost, off, whatIf, highlighted, onRemove, onNudge
     <motion.li
       ref={setRefs}
       layout
-      initial={{ opacity: 0, scale: 0.6, y: 6 }}
-      animate={{ opacity: ghost ? 0.3 : 1, scale: highlighted ? 1.06 : 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.15 } }}
+      initial={{ opacity: 0, scale: 0.7, y: 6 }}
+      animate={{ opacity: ghost ? 0.3 : 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.15 } }}
       transition={springs.layout}
       className="touch-none"
+      onPointerEnter={() => onHover?.(label)}
+      onPointerLeave={() => onHover?.(null)}
     >
       <ChipFace
         label={label}
         index={index}
         off={off}
+        noEffect={noEffect}
         highlighted={highlighted}
         whatIf={whatIf}
         onRemove={() => onRemove(label)}
@@ -194,6 +173,7 @@ function ChipFace({
   label,
   index,
   off,
+  noEffect,
   lifted,
   highlighted,
   whatIf,
@@ -203,68 +183,50 @@ function ChipFace({
   label: string;
   index: number;
   off: boolean;
+  noEffect?: boolean;
   lifted?: boolean;
   highlighted?: boolean;
   whatIf?: boolean;
   onRemove?: () => void;
   handleProps?: Record<string, unknown>;
 }) {
-  const region = findSymptom(label)?.region ?? "general";
   const hint = whatIf
-    ? `${off ? "Excluded" : "Included"}. Click to ${off ? "include" : "exclude"}; drag or arrow keys to reorder.`
+    ? `${off ? "Excluded" : "Included"}. Click to ${off ? "include" : "exclude"}; arrow keys reorder.`
     : "Drag or use arrow keys to reorder, Delete to remove.";
+  const tone = lifted
+    ? "border-cyan bg-raised shadow-[0_10px_30px_-8px_rgb(0_240_255/0.55)]"
+    : highlighted
+      ? "border-cyan bg-cyan/14 shadow-[0_0_12px_rgb(0_240_255/0.35)]"
+      : off
+        ? "border-dashed border-noeffect bg-transparent text-muted"
+        : noEffect
+          ? "border-muted/35 bg-transparent text-soft"
+          : "border-line bg-cyan/6 hover:border-cyan";
   return (
-    <div
-      className={`group flex items-center rounded-full border text-sm transition-colors ${
-        lifted
-          ? "border-neon-cyan/70 bg-surface shadow-[0_10px_30px_-8px_rgba(94,234,212,.55)]"
-          : highlighted
-            ? "border-neon-cyan/60 bg-neon-cyan/10 shadow-[0_0_18px_-6px_rgba(94,234,212,.7)]"
-            : off
-              ? "border-dashed border-white/15 bg-transparent"
-              : "border-white/12 bg-white/[0.04] hover:border-white/25"
-      }`}
-    >
+    <div className={`flex min-h-8 items-center rounded-[2px] border text-sm transition-colors ${tone}`}>
       <button
         type="button"
         {...handleProps}
-        aria-label={`${label}, position ${index + 1}. ${hint}`}
-        className="flex cursor-grab items-center gap-2 py-1.5 pr-1 pl-3 active:cursor-grabbing"
+        aria-label={`${label}, position ${index + 1}${noEffect ? ", no effect" : ""}. ${hint}`}
+        className="flex min-h-8 cursor-grab items-center gap-2 pr-1 pl-2.5 active:cursor-grabbing"
       >
-        <span aria-hidden className="font-mono text-[10px] text-muted">
-          {index + 1}
+        <span aria-hidden className="font-mono text-[11px] text-muted">
+          {String(index + 1).padStart(2, "0")}
         </span>
-        {whatIf ? (
-          <motion.span
-            aria-hidden
-            initial={false}
-            animate={{ scale: off ? 0.8 : 1 }}
-            transition={springs.snappy}
-            className={`grid size-3.5 place-items-center rounded-[5px] border text-[9px] ${
-              off ? "border-white/25 text-transparent" : "border-neon-cyan bg-neon-cyan/25 text-neon-cyan"
-            }`}
-          >
-            ✓
-          </motion.span>
-        ) : (
-          <span aria-hidden className={`size-1.5 rounded-full ${REGION_DOT[region]}`} />
-        )}
-        <span className={`transition-colors ${off ? "text-muted line-through decoration-white/30" : ""}`}>{label}</span>
+        <span className={off ? "line-through decoration-muted" : ""}>{label}</span>
+        {noEffect && !off && <span className="font-mono text-[10px] tracking-[0.06em] text-muted">NO EFFECT</span>}
       </button>
       {onRemove && (
-        <motion.button
+        <button
           type="button"
           onClick={onRemove}
-          whileHover={{ scale: 1.15, rotate: 90 }}
-          whileTap={{ scale: 0.85 }}
-          transition={springs.snappy}
           aria-label={`Remove ${label}`}
-          className="mr-1 grid size-6 place-items-center rounded-full text-xs text-muted hover:bg-contra/20 hover:text-contra"
+          className="mr-0.5 grid size-7 place-items-center text-xs text-muted transition-colors hover:text-contra"
         >
           ✕
-        </motion.button>
+        </button>
       )}
-      {!onRemove && <span className="pr-3" />}
+      {!onRemove && <span className="pr-2.5" />}
     </div>
   );
 }
