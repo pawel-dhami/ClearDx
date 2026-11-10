@@ -26,6 +26,7 @@ import { compare, highlightedSymptoms, noEffectSymptoms, pct, referencesIn, sort
 import type { Duration, FollowUpAnswer, PredictInput, Sex } from "@/lib/predict/types";
 import { findSymptom, REGIONS, symptomsInRegion, type Region } from "@/lib/symptoms";
 import { inputKey, usePrediction } from "@/lib/usePrediction";
+import { saveAnalysis, type SavedInput } from "@/lib/history";
 
 const WHAT_IF_DEBOUNCE_MS = 600;
 
@@ -46,6 +47,20 @@ export default function PredictorApp() {
   const { response, previous, baseline, loading, error, run } = usePrediction();
   const { small } = useBodyEnvironment();
   const revealResults = useRef(false);
+  // Manual runs (Analyze, follow-up answers) are saved to history for signed-in users once they return.
+  const pendingSave = useRef<Omit<SavedInput, "noEffect"> | null>(null);
+  const [savedFor, setSavedFor] = useState<object | null>(null);
+
+  useEffect(() => {
+    const p = pendingSave.current;
+    if (!response || !p) return;
+    pendingSave.current = null;
+    const used = new Set(response.result.predictions.flatMap((x) => x.contributions.map((c) => c.symptom.toLowerCase())));
+    const noEffect = p.symptoms.filter((x) => !p.excluded.includes(x) && !used.has(x.toLowerCase()));
+    saveAnalysis(response.source, { ...p, noEffect }, response.result)
+      .then((ok) => ok && setSavedFor(response))
+      .catch((e) => console.error("[history] save failed", e));
+  }, [response]);
 
   // After a manual Analyze on stacked layouts, bring the results into view once.
   useEffect(() => {
@@ -111,8 +126,12 @@ export default function PredictorApp() {
     setWhatIf(on);
     if (!on) setExcluded(new Set());
   };
+  const queueSave = (next: FollowUpAnswer[]) => {
+    pendingSave.current = { symptoms, age, sex, duration, answers: next, excluded: whatIf ? [...excluded] : [] };
+  };
   const analyze = () => {
     revealResults.current = true;
+    queueSave([]);
     setAnswers([]);
     setPendingAnswer(null);
     setStep(null);
@@ -121,6 +140,7 @@ export default function PredictorApp() {
   const updateAnswers = (next: FollowUpAnswer[], value: AnswerValue | null) => {
     setAnswers(next);
     setPendingAnswer(value);
+    queueSave(next);
     // In what-if mode the debounced effect picks this up; otherwise run now.
     if (!whatIf) void run({ ...input, answers: next }, { asBaseline: true });
   };
@@ -296,6 +316,8 @@ export default function PredictorApp() {
               updating={loading}
               actions={
                 response && (
+                  <>
+                  {savedFor === response && <span className="label !text-support">✓ Saved</span>}
                   <ReportButton
                     disabled={loading}
                     response={response}
@@ -307,6 +329,7 @@ export default function PredictorApp() {
                     duration={duration}
                     answers={answers}
                   />
+                  </>
                 )
               }
             />

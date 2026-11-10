@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AccountMenu } from "./AccountMenu";
 import { Corners, LogoMark } from "./Hud";
 
 /**
@@ -20,7 +21,10 @@ export function Nav({ right, compact = false }: { right?: ReactNode; compact?: b
             [ HOW IT WORKS ]
           </Link>
         </div>
-        <div className="flex items-center gap-3">{right}</div>
+        <div className="flex items-center gap-3">
+          {right}
+          <AccountMenu />
+        </div>
       </nav>
     </header>
   );
