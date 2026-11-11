@@ -47,14 +47,14 @@ export function AccountMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Account menu for ${email}`}
-        className="flex h-9 items-center gap-2 border border-cyan/25 pr-3 pl-1 hover:border-cyan"
+        className="flex h-9 items-center gap-2 rounded-full bg-fill pr-3 pl-1 transition-colors hover:bg-[var(--fill-hover)]"
       >
-        <span className="grid size-7 place-items-center rounded-full bg-cyan/15 font-mono text-xs text-cyan">{initials}</span>
-        <span className="hidden max-w-36 truncate font-mono text-xs text-soft sm:inline">{email}</span>
+        <span className="grid size-7 place-items-center rounded-full bg-[var(--accent-fill)] text-xs font-semibold text-white">{initials}</span>
+        <span className="hidden max-w-36 truncate text-sm text-soft sm:inline">{email}</span>
       </button>
       {open && (
-        <div role="menu" className="hud-strong absolute top-full right-0 z-40 mt-2 w-48 p-1">
-          <Link role="menuitem" href="/history" onClick={() => setOpen(false)} className="block px-3 py-2 font-mono text-xs uppercase hover:bg-cyan/8 hover:text-cyan">
+        <div role="menu" className="hud-strong absolute top-full right-0 z-40 mt-2 w-52 p-1.5">
+          <Link role="menuitem" href="/history" onClick={() => setOpen(false)} className="block rounded-[10px] px-3 py-2 text-sm hover:bg-fill">
             History
           </Link>
           <button
@@ -64,7 +64,7 @@ export function AccountMenu() {
               setOpen(false);
               await getSupabase()?.auth.signOut();
             }}
-            className="block w-full px-3 py-2 text-left font-mono text-xs uppercase hover:bg-cyan/8 hover:text-contra"
+            className="block w-full rounded-[10px] px-3 py-2 text-left text-sm text-contra hover:bg-fill"
           >
             Sign out
           </button>

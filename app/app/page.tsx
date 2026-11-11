@@ -20,13 +20,15 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { FollowUpCards, type AnswerFeedback, type AnswerValue } from "@/components/FollowUpCards";
 import { ReasoningTimeline } from "@/components/ReasoningTimeline";
 import { SymptomChips } from "@/components/SymptomChips";
-import { Corners, PanelTitle } from "@/components/site/Hud";
+import { PanelTitle } from "@/components/site/Hud";
 import { Nav } from "@/components/site/Nav";
 import { compare, highlightedSymptoms, noEffectSymptoms, pct, referencesIn, sortByConfidence, type Highlight } from "@/lib/explain";
 import type { Duration, FollowUpAnswer, PredictInput, Sex } from "@/lib/predict/types";
 import { findSymptom, REGIONS, symptomsInRegion, type Region } from "@/lib/symptoms";
 import { inputKey, usePrediction } from "@/lib/usePrediction";
 import { saveAnalysis, type SavedInput } from "@/lib/history";
+import { glowForSymptoms } from "@/components/body-map/parts";
+import { detailsToAnswers, type SymptomDetail } from "@/lib/symptomDetail";
 
 const WHAT_IF_DEBOUNCE_MS = 600;
 
@@ -36,6 +38,8 @@ export default function PredictorApp() {
   const [sex, setSex] = useState<Sex>("female");
   const [duration, setDuration] = useState<Duration>("1-3d");
   const [answers, setAnswers] = useState<FollowUpAnswer[]>([]);
+  // Optional per-symptom details (severity, onset, pattern, side, note), sent as extra answers.
+  const [details, setDetails] = useState<Record<string, SymptomDetail>>({});
   const [whatIf, setWhatIf] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [highlight, setHighlight] = useState<Highlight>(null);
@@ -82,7 +86,11 @@ export default function PredictorApp() {
 
   // Symptoms actually sent to the predictor (what-if can exclude some).
   const active = useMemo(() => (whatIf ? symptoms.filter((s) => !excluded.has(s)) : symptoms), [symptoms, excluded, whatIf]);
-  const input: PredictInput = useMemo(() => ({ symptoms: active, age, sex, duration, answers }), [active, age, sex, duration, answers]);
+  const detailAnswers = useMemo(() => detailsToAnswers(active, details), [active, details]);
+  const input: PredictInput = useMemo(
+    () => ({ symptoms: active, age, sex, duration, answers: [...detailAnswers, ...answers] }),
+    [active, age, sex, duration, detailAnswers, answers],
+  );
   const key = inputKey(input);
   const allIncluded = !whatIf || excluded.size === 0;
 
@@ -95,6 +103,19 @@ export default function PredictorApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [whatIf, key, run]);
 
+  // Editing a symptom's details after an analysis refreshes the result (debounced), so the detail visibly counts.
+  const detailKey = JSON.stringify(detailAnswers);
+  const lastDetailKey = useRef(detailKey);
+  useEffect(() => {
+    if (detailKey === lastDetailKey.current) return;
+    lastDetailKey.current = detailKey;
+    if (!response || whatIf || input.symptoms.length === 0) return;
+    const t = setTimeout(() => void run(input, { skipIfUnchanged: true, asBaseline: allIncluded }), WHAT_IF_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+    // Only detail edits should trigger this; `input` already includes them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailKey]);
+
   // On phones the picker lives in the collapsible body stage: opening a region also opens the stage.
   const selectRegion = (reg: Region | null) => {
     setActiveRegion(reg);
@@ -106,6 +127,12 @@ export default function PredictorApp() {
 
   const toggleSymptom = (label: string) => {
     setSymptoms((s) => (s.includes(label) ? s.filter((x) => x !== label) : [...s, label]));
+    setDetails((d) => {
+      if (!(label in d)) return d;
+      const rest = { ...d };
+      delete rest[label];
+      return rest;
+    });
     setExcluded((e) => {
       if (!e.has(label)) return e;
       const n = new Set(e);
@@ -127,7 +154,7 @@ export default function PredictorApp() {
     if (!on) setExcluded(new Set());
   };
   const queueSave = (next: FollowUpAnswer[]) => {
-    pendingSave.current = { symptoms, age, sex, duration, answers: next, excluded: whatIf ? [...excluded] : [] };
+    pendingSave.current = { symptoms, age, sex, duration, answers: [...detailAnswers, ...next], excluded: whatIf ? [...excluded] : [] };
   };
   const analyze = () => {
     revealResults.current = true;
@@ -135,14 +162,14 @@ export default function PredictorApp() {
     setAnswers([]);
     setPendingAnswer(null);
     setStep(null);
-    void run({ ...input, answers: [] }, { asBaseline: allIncluded });
+    void run({ ...input, answers: detailAnswers }, { asBaseline: allIncluded });
   };
   const updateAnswers = (next: FollowUpAnswer[], value: AnswerValue | null) => {
     setAnswers(next);
     setPendingAnswer(value);
     queueSave(next);
     // In what-if mode the debounced effect picks this up; otherwise run now.
-    if (!whatIf) void run({ ...input, answers: next }, { asBaseline: true });
+    if (!whatIf) void run({ ...input, answers: [...detailAnswers, ...next] }, { asBaseline: true });
   };
   const answer = (question: string, value: AnswerValue) =>
     updateAnswers([...answers.filter((a) => a.question !== question), { question, answer: value }], value);
@@ -185,6 +212,9 @@ export default function PredictorApp() {
     setHighlight(reg ? { kind: "refs", symptoms: symptoms.filter((s) => findSymptom(s)?.region === reg), conditions: [] } : null);
   };
 
+  // Organs and areas affected by the active symptoms; the hovered / referenced ones at full strength.
+  const glow = useMemo(() => glowForSymptoms(active, details, litSymptoms), [active, details, litSymptoms]);
+
   const flagNote = r?.red_flags.length ? ` ${r.red_flags.length} red flag${r.red_flags.length === 1 ? "" : "s"}.` : "";
   const announcement = top ? `Results updated. Top match: ${top.condition}, ${pct(top.confidence)} percent.${flagNote}` : "";
 
@@ -197,6 +227,7 @@ export default function PredictorApp() {
       highlightRegion={hoverRegion ?? regionFromHighlight}
       onHoverRegion={onHoverRegion}
       scanning={loading}
+      glow={glow}
       selected={symptoms}
       onToggleSymptom={toggleSymptom}
       overlay={top && !loading && !small ? <Connectors counts={counts} lit={regionFromHighlight} /> : undefined}
@@ -216,8 +247,8 @@ export default function PredictorApp() {
         compact
         right={
           response && (
-            <span className="border border-amber/45 px-2 py-1 font-mono text-[11px] tracking-[0.06em] text-amber">
-              {response.source === "mock" ? "MOCK MODE · DEMO DATA" : "LIVE · GROQ"}
+            <span className="rounded-full bg-amber/12 px-2.5 py-1 text-xs font-medium text-amber">
+              {response.source === "mock" ? "Demo mode" : "Live model"}
             </span>
           )
         }
@@ -251,14 +282,13 @@ export default function PredictorApp() {
       <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 lg:grid lg:grid-cols-[320px_360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_276px] lg:px-6">
         {/* ---------- Symptoms ---------- */}
         <section aria-labelledby="sym-title" className="hud flex min-h-0 flex-col gap-3 p-4 lg:col-start-1 lg:row-start-1">
-          <Corners only={["tl", "br"]} />
           <div className="flex items-center justify-between">
             <PanelTitle id="sym-title">
               Symptoms{symptoms.length ? <span className="text-text"> · {symptoms.length}</span> : null}
             </PanelTitle>
             {symptoms.length > 0 && (
-              <button type="button" onClick={() => (setSymptoms([]), setExcluded(new Set()))} className="font-mono text-xs text-muted hover:text-contra">
-                CLEAR
+              <button type="button" onClick={() => (setSymptoms([]), setExcluded(new Set()))} className="rounded-full px-2.5 py-1 text-[13px] text-muted hover:bg-fill hover:text-contra">
+                Clear all
               </button>
             )}
           </div>
@@ -274,6 +304,8 @@ export default function PredictorApp() {
               highlighted={litSymptoms}
               noEffect={new Set(sentNoEffect)}
               onHover={(s) => step === null && setHighlight(s ? { kind: "symptom", id: s } : null)}
+              details={details}
+              onDetail={(label, d) => setDetails((all) => ({ ...all, [label]: d }))}
             />
           </div>
           <p className="text-[13px] text-soft">
@@ -298,7 +330,7 @@ export default function PredictorApp() {
         )}
 
         {/* ---------- Results ---------- */}
-        <div id="results" tabIndex={-1} className="flex min-h-0 scroll-mt-28 flex-col gap-3 outline-none lg:col-start-3 lg:row-start-1" aria-busy={loading}>
+        <div id="results" tabIndex={-1} className="flex min-h-0 scroll-mt-28 flex-col gap-3 outline-none lg:col-start-3 lg:row-start-1 lg:overflow-y-auto lg:rounded-[22px]" aria-busy={loading}>
           {r && <RedFlagStrip flags={r.red_flags} />}
           {error ? (
             <TopPredictionError message={error} onRetry={input.symptoms.length ? () => void run(input, { asBaseline: allIncluded }) : undefined} />
@@ -349,7 +381,6 @@ export default function PredictorApp() {
 
         {/* ---------- Follow-ups ---------- */}
         <section aria-labelledby="fu-title" className="hud flex min-h-0 flex-col gap-2 p-4 lg:col-start-1 lg:row-start-2">
-          <Corners only={["tl", "br"]} />
           <PanelTitle id="fu-title">Refine</PanelTitle>
           {r && !error ? (
             <FollowUpCards questions={r.follow_up_questions} answers={answers} disabled={loading} onAnswer={answer} onUndo={undo} feedback={feedback} />
@@ -370,8 +401,7 @@ export default function PredictorApp() {
 
         {/* ---------- Why: graph + reasoning ---------- */}
         <div className="flex min-h-0 flex-col gap-3 lg:col-start-3 lg:row-start-2 lg:grid lg:grid-cols-[minmax(0,1fr)_230px]">
-          <section aria-labelledby="graph-title" className="hud flex min-h-0 flex-col p-4">
-            <Corners only={["tl", "br"]} />
+          <section aria-labelledby="graph-title" className="hud flex min-h-0 flex-col overflow-y-auto p-4">
             <div className="mb-1 flex items-center justify-between gap-3">
               <PanelTitle id="graph-title">Why</PanelTitle>
               <GraphLegend />
@@ -385,13 +415,12 @@ export default function PredictorApp() {
                 <div className="skeleton h-3 w-4/6" />
               </div>
             ) : (
-              <div className="grid min-h-[160px] flex-1 place-items-center border border-dashed border-cyan/15 text-center text-sm text-soft">
+              <div className="grid min-h-[160px] flex-1 place-items-center rounded-2xl bg-fill px-6 text-center text-sm text-soft">
                 Lines from each symptom to each condition appear here.
               </div>
             )}
           </section>
           <section aria-labelledby="rs-title" className="hud flex min-h-0 flex-col p-4">
-            <Corners only={["tl", "br"]} />
             <PanelTitle id="rs-title" className="mb-2">
               Reasoning
             </PanelTitle>

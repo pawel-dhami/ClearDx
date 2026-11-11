@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ReportButton } from "@/components/app/ReportButton";
 import { SeverityTag } from "@/components/app/Predictions";
 import { Disclaimer } from "@/components/Disclaimer";
-import { Corners, PanelTitle } from "@/components/site/Hud";
+import { PanelTitle } from "@/components/site/Hud";
 import { Nav } from "@/components/site/Nav";
 import { pct } from "@/lib/explain";
 import { deleteAnalysis, listAnalyses, type SavedAnalysis } from "@/lib/history";
@@ -50,7 +50,7 @@ export default function HistoryPage() {
       />
       <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 py-10 sm:px-8">
         <p className="label mb-2">Account</p>
-        <h1 className="mb-8 font-display text-4xl font-bold tracking-[0.05em] uppercase">Your history</h1>
+        <h1 className="mb-8 font-display text-4xl font-semibold">Your history</h1>
 
         {!authEnabled ? (
           <p className="text-soft">Sign-in isn&apos;t set up on this deployment, so there&apos;s no saved history.</p>
@@ -64,7 +64,7 @@ export default function HistoryPage() {
             to see analyses you&apos;ve saved.
           </p>
         ) : error ? (
-          <p role="alert" className="border border-contra/50 bg-contra/7 px-3 py-2 text-sm">
+          <p role="alert" className="rounded-xl bg-contra/10 px-3 py-2 text-sm text-contra">
             {error}
           </p>
         ) : items === null ? (
@@ -73,8 +73,8 @@ export default function HistoryPage() {
             <div className="skeleton h-24" />
           </div>
         ) : items.length === 0 ? (
-          <section className="hud-quiet p-8 text-center">
-            <p className="font-display text-2xl font-bold tracking-[0.05em] uppercase">Nothing saved yet</p>
+          <section className="hud p-8 text-center">
+            <p className="font-display text-2xl font-semibold">Nothing saved yet</p>
             <p className="mt-2 text-soft">Run an analysis while signed in and it will appear here.</p>
             <Link href="/app" className="btn btn-primary mt-6">
               Open the app
@@ -86,15 +86,14 @@ export default function HistoryPage() {
               const top = [...a.result.predictions].sort((x, y) => y.confidence - x.confidence)[0];
               return (
                 <li key={a.id} className="hud flex flex-wrap items-center gap-5 p-5">
-                  <Corners only={["tl", "br"]} />
                   <span className="w-20 shrink-0 font-mono text-3xl font-bold text-cyan">{a.top_confidence != null ? `${pct(a.top_confidence)}%` : "—"}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
                       <PanelTitle>{new Date(a.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</PanelTitle>
-                      <span className="font-mono text-[11px] text-amber">{a.source === "mock" ? "MOCK" : "GROQ"}</span>
+                      <span className="rounded-full bg-amber/12 px-2 py-0.5 text-[11px] font-semibold text-amber">{a.source === "mock" ? "Demo mode" : "Live model"}</span>
                     </div>
                     <p className="mt-1 flex flex-wrap items-center gap-3">
-                      <span className="font-display text-xl font-bold tracking-[0.05em] uppercase">{a.top_condition ?? "No match"}</span>
+                      <span className="font-display text-xl font-semibold">{a.top_condition ?? "No match"}</span>
                       {top && <SeverityTag severity={top.severity} />}
                     </p>
                     <p className="mt-1 truncate text-sm text-soft">

@@ -49,14 +49,14 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
     >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-baseline gap-3">
-          <span className="font-display text-lg font-bold tracking-[0.06em] text-cyan uppercase">{REGION_LABELS[region]}</span>
+          <span className="font-display text-lg font-semibold">{REGION_LABELS[region]}</span>
           <span className="label">Select all that apply</span>
         </h3>
         <motion.button
           onClick={closeAndRestore}
           whileTap={{ scale: 0.9 }}
           aria-label="Close symptom picker"
-          className="grid size-8 place-items-center border border-line text-muted hover:border-cyan hover:text-cyan"
+          className="grid size-8 place-items-center rounded-full bg-fill text-muted hover:bg-[var(--fill-hover)] hover:text-text"
         >
           ✕
         </motion.button>
@@ -82,10 +82,8 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
-                className={`flex min-h-9 items-center gap-1.5 rounded-[2px] border px-3 text-sm transition-colors ${
-                  on
-                    ? "border-cyan bg-cyan/12 text-text shadow-[0_0_12px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
-                    : "border-line text-soft hover:border-cyan hover:text-text"
+                className={`flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors ${
+                  on ? "bg-[var(--accent-fill)] text-white" : "bg-fill text-soft hover:bg-[var(--fill-hover)] hover:text-text"
                 }`}
               >
                 <motion.span
@@ -93,7 +91,7 @@ export function SymptomPicker({ region, selected, onToggle, onClose }: SymptomPi
                   initial={false}
                   animate={{ scale: on ? 1 : 0, width: on ? 12 : 0 }}
                   transition={springs.snappy}
-                  className="overflow-hidden text-cyan"
+                  className="overflow-hidden"
                 >
                   ✓
                 </motion.span>

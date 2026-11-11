@@ -2,23 +2,23 @@
 
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react";
 import { useEffect, useId, type Ref } from "react";
-import { Corners, PanelTitle } from "@/components/site/Hud";
+import { PanelTitle } from "@/components/site/Hud";
 import { highlightedConditions, pct, type Highlight } from "@/lib/explain";
 import { springs } from "@/lib/motion";
 import type { Prediction, Severity } from "@/lib/predict/types";
 
 export const SEVERITY: Record<Severity, { label: string; short: string; cls: string }> = {
-  low: { label: "Low", short: "LOW", cls: "text-support border-support/45" },
-  moderate: { label: "Moderate", short: "MOD", cls: "text-amber border-amber/50" },
-  high: { label: "High", short: "HIGH", cls: "text-severe border-severe/50" },
-  emergency: { label: "Emergency", short: "EMERG", cls: "text-contra border-contra/60" },
+  low: { label: "Low", short: "Low", cls: "text-support bg-support/12" },
+  moderate: { label: "Moderate", short: "Moderate", cls: "text-amber bg-amber/12" },
+  high: { label: "High", short: "High", cls: "text-severe bg-severe/12" },
+  emergency: { label: "Emergency", short: "Emergency", cls: "text-contra bg-contra/12" },
 };
 
 export function SeverityTag({ severity, short = false }: { severity: Severity; short?: boolean }) {
   const s = SEVERITY[severity];
   return (
-    <span className={`rounded-[2px] border px-1.5 py-0.5 font-mono text-[11px] tracking-[0.08em] ${s.cls}`} aria-label={`Severity: ${s.label}`}>
-      {short ? s.short : s.label.toUpperCase()}
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.cls}`} aria-label={`Severity: ${s.label}`}>
+      {short ? s.short : s.label}
     </span>
   );
 }
@@ -30,14 +30,14 @@ function AnimatedNumber({ value }: { value: number }) {
   return <motion.span>{text}</motion.span>;
 }
 
-export function ConfidenceRing({ value, before, size = 150 }: { value: number; before?: number | null; size?: number }) {
+export function ConfidenceRing({ value, before, size = 124 }: { value: number; before?: number | null; size?: number }) {
   const id = useId();
-  const stroke = 8;
+  const stroke = 10;
   const r = (size - stroke) / 2 - 2;
   const C = 2 * Math.PI * r;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      {/* brief glow whenever the value changes */}
+      {/* brief  whenever the value changes */}
       <motion.span key={value} aria-hidden className="absolute inset-0 rounded-full bg-cyan/20 blur-lg" initial={{ opacity: 0.8, scale: 0.85 }} animate={{ opacity: 0, scale: 1.2 }} transition={{ duration: 0.9, ease: "easeOut" }} />
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
         <defs>
@@ -49,7 +49,7 @@ export function ConfidenceRing({ value, before, size = 150 }: { value: number; b
             </feMerge>
           </filter>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="color-mix(in oklab, var(--accent) 8%, transparent)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--fill-hover)" strokeWidth={stroke} />
         {before != null && (
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(148 163 184 / 0.35)" strokeWidth={stroke} strokeDasharray={C} strokeDashoffset={C * (1 - before)} />
         )}
@@ -60,11 +60,11 @@ export function ConfidenceRing({ value, before, size = 150 }: { value: number; b
           fill="none"
           stroke="var(--accent)"
           strokeWidth={stroke}
+          strokeLinecap="round"
           strokeDasharray={C}
           initial={{ strokeDashoffset: C }}
           animate={{ strokeDashoffset: C * (1 - Math.max(0.001, value)) }}
           transition={{ type: "spring", stiffness: 90, damping: 18 }}
-          filter={`url(#${id})`}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
@@ -82,7 +82,7 @@ export function ConfidenceRing({ value, before, size = 150 }: { value: number; b
 
 export function DeltaTag({ delta, className = "" }: { delta: number | null | undefined; className?: string }) {
   if (delta === undefined) return null;
-  if (delta === null) return <span className={`rounded-[2px] border border-cyan/50 px-1.5 font-mono text-xs text-cyan ${className}`}>NEW</span>;
+  if (delta === null) return <span className={`rounded-full bg-cyan/12 px-2 py-0.5 text-[11px] font-semibold text-cyan ${className}`}>New</span>;
   const d = pct(delta);
   if (d === 0) return <span className={`font-mono text-xs text-muted ${className}`}>±0</span>;
   const up = d > 0;
@@ -92,10 +92,10 @@ export function DeltaTag({ delta, className = "" }: { delta: number | null | und
       initial={{ scale: 0.5, opacity: 0, y: up ? 6 : -6 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={springs.snappy}
-      className={`rounded-[2px] border px-1.5 font-mono text-xs ${up ? "border-support/60 text-support" : "border-contra/70 text-contra"} ${className}`}
+      className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold ${up ? "bg-support/12 text-support" : "bg-contra/12 text-contra"} ${className}`}
       aria-label={`${up ? "Up" : "Down"} ${Math.abs(d)} points`}
     >
-      {up ? "▲ +" : "▼ −"}
+      {up ? "+" : "−"}
       {Math.abs(d)}
     </motion.span>
   );
@@ -128,9 +128,8 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
       aria-labelledby="top-title"
       onPointerEnter={() => onHighlight({ kind: "condition", id: p.condition })}
       onPointerLeave={() => onHighlight(null)}
-      className={`hud flex min-h-0 flex-1 flex-col p-5 transition-colors ${lit ? "border-cyan" : ""}`}
+      className={`hud flex flex-none flex-col p-5 transition-colors ${lit ? "!border-[var(--accent)]" : ""}`}
     >
-      <Corners />
       <div className="flex items-center justify-between gap-3">
         <PanelTitle id="top-title">Top match</PanelTitle>
         <div className="flex items-center gap-3">
@@ -142,7 +141,7 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
         <ConfidenceRing value={p.confidence} before={showWhatIf ? before : null} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
-            <h3 className="font-display text-4xl leading-none font-bold tracking-[0.05em] uppercase sm:text-[44px]">{p.condition}</h3>
+            <h3 className="font-display text-3xl leading-tight font-semibold sm:text-[34px]">{p.condition}</h3>
             <SeverityTag severity={p.severity} />
             {!showWhatIf && <DeltaTag delta={delta} />}
           </div>
@@ -158,7 +157,7 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
           )}
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
-              <p className="label mb-2 !text-support">+ Supports</p>
+              <p className="label mb-2 !text-support">Supports</p>
               <ul className="space-y-1.5 text-sm">
                 {supports.map((c) => (
                   <li key={c.symptom} className="flex justify-between gap-2" title={c.reason}>
@@ -170,7 +169,7 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
               </ul>
             </div>
             <div>
-              <p className="label mb-2 !text-contra">− Contradicts</p>
+              <p className="label mb-2 !text-contra">Argues against</p>
               <ul className="space-y-1.5 text-sm">
                 {against.map((c) => (
                   <li key={c.symptom} className="flex justify-between gap-2" title={c.reason}>
@@ -197,10 +196,9 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
 export function TopPredictionSkeleton({ count }: { count: number }) {
   return (
     <section className="hud flex flex-1 items-center gap-6 p-5" aria-busy="true" aria-label="Analyzing">
-      <Corners only={["tl", "br"]} />
       <svg width="150" height="150" viewBox="0 0 160 160" className="shrink-0" aria-hidden>
-        <circle cx="80" cy="80" r="70" fill="none" stroke="color-mix(in oklab, var(--accent) 8%, transparent)" strokeWidth="8" />
-        <circle cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" strokeWidth="8" strokeDasharray="90 350" className="origin-center animate-spin [animation-duration:1.6s]" />
+        <circle cx="80" cy="80" r="70" fill="none" stroke="var(--fill-hover)" strokeWidth="8" />
+        <circle cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" strokeDasharray="90 350" className="origin-center animate-spin [animation-duration:1.6s]" />
       </svg>
       <div className="flex-1 space-y-3">
         <p className="label !text-cyan">Analyzing {count} symptom{count === 1 ? "" : "s"}…</p>
@@ -217,14 +215,13 @@ export function TopPredictionSkeleton({ count }: { count: number }) {
 
 export function TopPredictionEmpty() {
   return (
-    <section className="hud-quiet flex flex-1 flex-col justify-center p-6" aria-label="No result yet">
+    <section className="hud flex flex-1 flex-col justify-center p-6" aria-label="No result yet">
       <p className="label">Top match</p>
-      <h2 className="mt-2 font-display text-4xl leading-none font-bold tracking-[0.05em] uppercase">Awaiting input</h2>
+      <h2 className="mt-1 font-display text-[34px] leading-tight font-semibold">Ready when you are</h2>
       <ol className="mt-5 grid gap-4 text-sm text-soft sm:grid-cols-3">
         {["Point at a region of the body", "Pick what you feel, then set age and duration", "Press Analyze to see ranked conditions and why"].map((t, i) => (
-          <li key={t} className="border-t border-cyan/30 pt-3">
-            <span className="font-mono text-cyan">0{i + 1}</span>
-            <br />
+          <li key={t} className="rounded-2xl bg-fill p-3.5">
+            <span className="mb-1.5 grid size-6 place-items-center rounded-full bg-[var(--accent-fill)] text-xs font-semibold text-white">{i + 1}</span>
             {t}
           </li>
         ))}
@@ -236,9 +233,8 @@ export function TopPredictionEmpty() {
 export function TopPredictionError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <section role="alert" className="hud flex flex-1 flex-col justify-center !border-contra/50 p-6">
-      <Corners tone="contra" />
-      <p className="font-mono text-xs font-bold tracking-[0.08em] text-contra">✕ PREDICTION FAILED</p>
-      <h2 className="mt-2 font-display text-4xl leading-none font-bold tracking-[0.05em] uppercase">Couldn’t reach the model</h2>
+      <p className="text-[13px] font-semibold text-contra">Prediction failed</p>
+      <h2 className="mt-1 font-display text-[34px] leading-tight font-semibold">Couldn’t reach the model</h2>
       <p className="mt-3 max-w-[52ch] text-[15px] text-soft">The prediction service didn’t return a valid answer. Your symptoms and answers are kept, so nothing was lost.</p>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {onRetry && (
@@ -246,7 +242,7 @@ export function TopPredictionError({ message, onRetry }: { message: string; onRe
             Retry
           </button>
         )}
-        <span className="font-mono text-xs text-muted uppercase">{message}</span>
+        <span className="font-mono text-xs text-muted">{message}</span>
       </div>
     </section>
   );
@@ -291,10 +287,10 @@ function SecondaryCard({ p, before, delta, lit, onHighlight, ref }: { p: Predict
       onFocus={() => onHighlight({ kind: "condition", id: p.condition })}
       onBlur={() => onHighlight(null)}
       aria-label={`${p.condition}, ${pct(p.confidence)} percent, ${SEVERITY[p.severity].label} severity`}
-      className={`hud-quiet p-3 transition-colors ${lit ? "!border-cyan" : ""}`}
+      className={`hud !rounded-[18px] p-3.5 transition-colors ${lit ? "!border-[var(--accent)]" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate font-display text-lg font-semibold tracking-[0.05em] uppercase">{p.condition}</span>
+        <span className="truncate font-display text-lg font-semibold">{p.condition}</span>
         <SeverityTag severity={p.severity} short />
       </div>
       <p className="mt-1 flex items-baseline gap-2">
@@ -307,8 +303,8 @@ function SecondaryCard({ p, before, delta, lit, onHighlight, ref }: { p: Predict
         <span className="font-mono text-xl font-bold">{pct(p.confidence)}%</span>
         <DeltaTag delta={showBefore ? p.confidence - before! : delta} />
       </p>
-      <div className="mt-2 h-1 bg-cyan/8">
-        <motion.div className="h-full bg-cyan/70" initial={{ width: 0 }} animate={{ width: `${pct(p.confidence)}%` }} transition={springs.gentle} />
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fill">
+        <motion.div className="h-full rounded-full bg-[var(--accent-fill)]" initial={{ width: 0 }} animate={{ width: `${pct(p.confidence)}%` }} transition={springs.gentle} />
       </div>
     </motion.li>
   );
@@ -317,8 +313,8 @@ function SecondaryCard({ p, before, delta, lit, onHighlight, ref }: { p: Predict
 export function RedFlagStrip({ flags }: { flags: string[] }) {
   if (flags.length === 0) return null;
   return (
-    <div role="alert" className="flex items-start gap-3 border border-contra/45 bg-contra/7 px-4 py-2.5">
-      <span className="shrink-0 font-mono text-xs font-bold tracking-[0.06em] text-contra">▲ RED FLAG{flags.length > 1 ? `S · ${flags.length}` : ""}</span>
+    <div role="alert" className="flex items-start gap-3 rounded-2xl bg-contra/10 px-4 py-3">
+      <span className="shrink-0 text-[13px] font-semibold text-contra">Warning sign{flags.length > 1 ? `s · ${flags.length}` : ""}</span>
       <ul className="space-y-1 text-sm text-text">
         {flags.map((f) => (
           <li key={f}>{f}</li>

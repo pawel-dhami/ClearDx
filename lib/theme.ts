@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 export type Theme = "dark" | "light";
-export const DEFAULT_HUE = 190;
+export const DEFAULT_HUE = 250;
 const KEY_THEME = "cleardx-theme";
 const KEY_HUE = "cleardx-hue";
 export const THEME_EVENT = "cleardx-theme-change";
@@ -53,14 +53,20 @@ export function useThemeState() {
   return { theme, hue };
 }
 
-/** Resolves the live --accent colour (an oklch() value) to sRGB 0–1 via a 1px canvas. */
-export function readAccentRGB(): [number, number, number] {
+/** Resolves a live CSS colour variable (e.g. an oklch() value) to sRGB 0–1 via a 1px canvas. */
+export function readCssRGB(name: string, fallback = "#3b82f6"): [number, number, number] {
   const c = document.createElement("canvas");
   c.width = c.height = 1;
   const g = c.getContext("2d");
-  if (!g) return [0, 0.94, 1];
-  g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00f0ff";
+  if (!g) return [0.2, 0.5, 1];
+  g.fillStyle = fallback;
+  g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   g.fillRect(0, 0, 1, 1);
   const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
   return [r / 255, gr / 255, b / 255];
 }
+
+/** The accent colour (hue slider) in sRGB 0–1. */
+export const readAccentRGB = () => readCssRGB("--accent");
+/** The contrasting "affected part" colour, opposite the accent on the colour wheel. */
+export const readComplementRGB = () => readCssRGB("--complement", "#ef4444");

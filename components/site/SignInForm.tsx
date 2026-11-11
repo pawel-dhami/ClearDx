@@ -85,7 +85,7 @@ export function SignInForm() {
   if (sent) {
     return (
       <div role="status" className="space-y-3">
-        <p className="font-display text-2xl font-bold tracking-[0.04em] uppercase">Check your email</p>
+        <p className="font-display text-2xl font-semibold">Check your email</p>
         <p className="text-soft">
           {sent === "link" ? "We sent a sign-in link to " : "Confirm your account using the link we sent to "}
           <span className="text-text">{email}</span>.
@@ -104,7 +104,7 @@ export function SignInForm() {
 
   return (
     <div className="space-y-5">
-      <div role="tablist" aria-label="Account" className="grid grid-cols-2 border border-line">
+      <div role="tablist" aria-label="Account" className="grid grid-cols-2 rounded-full bg-fill p-0.5">
         {tabs.map((t) => (
           <button
             key={t.m}
@@ -112,7 +112,7 @@ export function SignInForm() {
             role="tab"
             aria-selected={mode === t.m}
             onClick={() => (setMode(t.m), setMessage(null))}
-            className={`min-h-10 font-mono text-xs uppercase ${mode === t.m ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--accent)]" : "text-soft hover:text-text"}`}
+            className={`min-h-9 rounded-full text-sm font-medium transition-all ${mode === t.m ? "bg-raised text-text shadow-[0_1px_3px_rgb(0_0_0/0.18)]" : "text-muted hover:text-text"}`}
           >
             {t.label}
           </button>
@@ -120,7 +120,7 @@ export function SignInForm() {
       </div>
 
       {message && (
-        <p role="alert" className="border border-contra/50 bg-contra/7 px-3 py-2 text-sm">
+        <p role="alert" className="rounded-xl bg-contra/10 px-3 py-2 text-sm text-contra">
           {message}
         </p>
       )}
@@ -137,7 +137,7 @@ export function SignInForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-11 w-full border border-line bg-raised/60 px-3 text-text placeholder:text-faint focus:border-cyan"
+            className="h-11 w-full rounded-xl bg-fill px-3.5 text-text placeholder:text-faint focus:outline-2 focus:outline-[var(--accent)]"
           />
         </div>
         {mode !== "link" && (
@@ -153,7 +153,7 @@ export function SignInForm() {
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 w-full border border-line bg-raised/60 px-3 text-text focus:border-cyan"
+              className="h-11 w-full rounded-xl bg-fill px-3.5 text-text focus:outline-2 focus:outline-[var(--accent)]"
             />
             {mode === "signup" && <p className="text-xs text-soft">At least 8 characters.</p>}
           </div>

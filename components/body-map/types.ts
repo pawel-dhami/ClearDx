@@ -1,4 +1,5 @@
 import type { Region } from "@/lib/symptoms";
+import type { PartGlow } from "./parts";
 
 /** Regions that exist on the figure. "skin" and "general" are whole-body and get buttons instead. */
 export const SPATIAL_REGIONS = ["head", "throat", "chest", "abdomen", "pelvis", "limbs"] as const;
@@ -17,6 +18,8 @@ export interface FigureProps {
   hovered: Region | null;
   /** prefers-reduced-motion: drop idle/scan movement, keep state changes. */
   reduced?: boolean;
+  /** Organs and surface areas affected by the selected symptoms (0–1), lit in the contrasting colour. */
+  glow?: PartGlow;
   /** "app" = interactive body map; "hero" = landing showcase that leans toward the cursor. */
   variant?: "app" | "hero";
 }

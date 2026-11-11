@@ -8,6 +8,7 @@ import { REGION_LABELS, REGIONS, type Region } from "@/lib/symptoms";
 import BodyMap2D from "./BodyMap2D";
 import { RegionButtons } from "./RegionButtons";
 import { SymptomPicker } from "../SymptomPicker";
+import type { PartGlow } from "./parts";
 
 // The WebGL scene is never on the critical path: loaded only on the client, after first paint.
 const Hologram = dynamic(() => import("./Hologram"), {
@@ -64,12 +65,14 @@ export interface BodyStageProps {
   scanning: boolean;
   selected: string[];
   onToggleSymptom: (label: string) => void;
+  /** Organs / areas affected by the selected symptoms; lit in the contrasting colour. */
+  glow?: PartGlow;
   /** Optional overlay drawn on top of the stage (e.g. connector lines). */
   overlay?: ReactNode;
   className?: string;
 }
 
-/** The hologram stage: 3D point cloud (or 2D fallback), scan line, hover tag and symptom picker. */
+/** The body stage: smooth 3D figure (or 2D fallback), hover tag, view toggle and symptom picker. */
 export function BodyStage({
   counts,
   activeRegion,
@@ -79,6 +82,7 @@ export function BodyStage({
   scanning,
   selected,
   onToggleSymptom,
+  glow,
   overlay,
   className = "",
 }: BodyStageProps) {
@@ -99,14 +103,13 @@ export function BodyStage({
     scanning,
     hovered: shown,
     reduced,
+    glow,
     onHover: hover,
     onSelect: (r: Region) => onSelectRegion(activeRegion === r ? null : r),
   };
 
   return (
-    <div className={`relative overflow-hidden border border-cyan/12 bg-cyan/[0.015] ${className}`}>
-      <div aria-hidden className="ruler-y absolute inset-y-8 left-0" />
-      <div aria-hidden className="ruler-x absolute inset-x-8 bottom-0" />
+    <div className={`relative overflow-hidden rounded-[22px] border border-line bg-[var(--panel-quiet)] ${className}`}>
 
       <div className="absolute inset-0">
         {mode === "3d" ? (
@@ -120,8 +123,8 @@ export function BodyStage({
         )}
       </div>
 
-      {scanning && !reduced && (
-        <div aria-hidden className="pointer-events-none absolute inset-x-[8%] z-[3] h-0.5 animate-scan bg-cyan shadow-[0_0_15px_5px_color-mix(in_oklab,var(--accent)_35%,transparent)]" />
+      {scanning && !reduced && mode === "2d" && (
+        <div aria-hidden className="pointer-events-none absolute inset-x-[12%] z-[3] h-px animate-scan rounded-full bg-cyan opacity-70" />
       )}
       {overlay}
 
@@ -134,28 +137,28 @@ export function BodyStage({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={springs.snappy}
-            className="hud px-2.5 py-1 font-mono text-[11px] tracking-[0.08em] uppercase"
+            className="rounded-full border border-line bg-[var(--panel-strong)] px-3 py-1 text-xs font-medium shadow-sm backdrop-blur"
           >
             {scanning ? (
-              <span className="text-cyan">Scanning…</span>
+              <span className="text-cyan">Analysing…</span>
             ) : shown ? (
               <span className="text-cyan">{REGION_LABELS[shown]}{counts[shown] ? ` · ${counts[shown]} selected` : ""}</span>
             ) : (
-              <span className="text-muted">Body map · {mode === "3d" ? "point at a region" : "tap a region"}</span>
+              <span className="text-muted">{mode === "3d" ? "Point at a body region" : "Tap a body region"}</span>
             )}
           </motion.span>
         </AnimatePresence>
         {webgl && (
-          <div role="radiogroup" aria-label="Body map view" className="pointer-events-auto flex border border-line bg-ink/70">
+          <div role="radiogroup" aria-label="Body map view" className="pointer-events-auto flex rounded-full border border-line bg-[var(--panel-strong)] p-0.5 shadow-sm backdrop-blur">
             {(["3d", "2d"] as const).map((m) => (
               <button
                 key={m}
                 role="radio"
                 aria-checked={mode === m}
                 onClick={() => setUserMode(m)}
-                className={`min-h-8 px-2.5 font-mono text-xs uppercase ${mode === m ? "bg-cyan/12 text-cyan shadow-[inset_0_-2px_0_var(--accent)]" : "text-muted hover:text-text"}`}
+                className={`min-h-7 rounded-full px-3 text-xs font-medium transition-colors ${mode === m ? "bg-[var(--accent-fill)] text-white" : "text-muted hover:text-text"}`}
               >
-                {m}
+                {m.toUpperCase()}
               </button>
             ))}
           </div>

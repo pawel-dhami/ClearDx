@@ -4,7 +4,8 @@ import { DURATION_LABELS, PredictionResultSchema } from "./schema";
 import type { PredictInput, PredictionResult } from "./types";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile was retired for free/developer keys on 2026-08-16; override with GROQ_MODEL.
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 const TIMEOUT_MS = 30_000;
 
 const SYSTEM_PROMPT = `You are the reasoning engine of an EDUCATIONAL symptom-explainer demo. You are not a doctor and your output is not medical advice.
@@ -101,6 +102,8 @@ export class GroqPredictor implements Predictor {
           messages,
           temperature: 0.2,
           response_format: { type: "json_object" },
+          // gpt-oss models reason before answering; a light pass keeps responses fast.
+          ...(this.model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}),
         }),
         signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       });
@@ -112,7 +115,8 @@ export class GroqPredictor implements Predictor {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       const status = res.status === 401 || res.status === 403 ? 500 : res.status === 429 ? 429 : 502;
-      throw new PredictorError(`Groq API error (${res.status})`, status, body.slice(0, 500));
+      const hint = res.status === 404 ? ` · model "${this.model}" not available (check GROQ_MODEL)` : "";
+      throw new PredictorError(`Groq API error (${res.status})${hint}`, status, body.slice(0, 500));
     }
 
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };

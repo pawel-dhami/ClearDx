@@ -381,7 +381,7 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
                         fontSize={isCond ? 15 : 12.5}
                         fontWeight={isCond ? 700 : 400}
                         fill={n.tag ? "var(--muted)" : "var(--text)"}
-                        style={{ fontFamily: isCond ? "var(--font-display)" : "var(--font-sans)", textTransform: isCond ? "uppercase" : undefined, letterSpacing: isCond ? "0.05em" : undefined, paintOrder: "stroke", stroke: "var(--ink)", strokeWidth: 3 }}
+                        style={{ fontFamily: isCond ? "var(--font-display)" : "var(--font-sans)", textTransform: isCond ? "" : undefined, letterSpacing: isCond ? "0.05em" : undefined, paintOrder: "stroke", stroke: "var(--ink)", strokeWidth: 3 }}
                         textDecoration={n.tag === "excluded" ? "line-through" : undefined}
                         pointerEvents="none"
                         aria-hidden
@@ -394,7 +394,7 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
                         </text>
                       )}
                       {n.tag && !vertical && (
-                        <text x={n.r + 9} y={4} fontSize={11} fill="var(--muted)" style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }} pointerEvents="none" aria-hidden>
+                        <text x={n.r + 9} y={4} fontSize={11} fill="var(--muted)" style={{ fontFamily: "var(--font-mono)", textTransform: "", letterSpacing: "0.06em" }} pointerEvents="none" aria-hidden>
                           {n.tag}
                         </text>
                       )}
@@ -429,7 +429,7 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
       </div>
 
       {vertical && (
-        <div className="mt-2 min-h-24 border border-cyan/12 bg-ink/40 p-3 text-xs" aria-hidden>
+        <div className="mt-2 min-h-24 rounded-xl bg-fill p-3 text-xs" aria-hidden>
           <AnimatePresence mode="wait">
             {tip ? (
               <motion.div key={tip.title} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={springs.snappy}>
@@ -481,7 +481,7 @@ export function ContributionGraph({ result, highlight, onHighlight, extras = [],
 function TipBody({ tip }: { tip: Tip }) {
   return (
     <>
-      <p className="mb-1.5 font-display text-sm font-bold tracking-[0.05em] text-text uppercase">{tip.title}</p>
+      <p className="mb-1.5 font-display text-sm font-semibold text-text">{tip.title}</p>
       {tip.note && <p className="text-soft">{tip.note}</p>}
       <ul className="space-y-1.5">
         {tip.rows.map((l) => (

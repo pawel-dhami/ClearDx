@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * ClearDx "Clinical HUD" design system (see .superdesign/design-system.md).
+ * ClearDx design system: soft, rounded, system-style surfaces.
  * Every colour is a CSS variable so the theme (dark/light) and the accent hue
  * slider can recolour the whole UI at runtime. Set on <html>:
  *   data-theme="dark" | "light"      style="--hue: 0–360"
@@ -10,55 +10,78 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --hue: 190;
-  --line: color-mix(in oklab, var(--accent) 22%, transparent);
-  --accent: oklch(0.87 0.15 var(--hue));
-  --ink: #030812;
-  --raised: #07111f;
-  --text: #e2e8f0;
-  --soft: #cbd5e1;
-  --muted: #94a3b8;
-  --faint: #64748b;
-  --support: #00ff66;
-  --contra: #ff3b5c;
-  --amber: #ffb000;
-  --severe: #ff8a3d;
-  --noeffect: #475569;
-  --panel: rgb(3 8 18 / 0.72);
-  --panel-quiet: rgb(3 8 18 / 0.45);
-  --panel-strong: rgb(7 17 31 / 0.94);
-  --glow-strength: 1;
+  --hue: 250;
+  --accent: oklch(0.76 0.14 var(--hue)); /* text, icons, outlines */
+  --accent-fill: oklch(0.55 0.2 var(--hue)); /* filled buttons (white text) */
+  /* "affected part" colour on the body: rotated away from the accent (blue accent → red) */
+  --complement: oklch(0.7 0.2 calc(var(--hue) + 135));
+  --on-accent: #ffffff;
+  --ink: #0d0e12;
+  --raised: #17181d;
+  --text: #f5f5f7;
+  --soft: #d1d1d6;
+  --muted: #a1a1a8;
+  --faint: #6e6e76;
+  --support: #30d158;
+  --contra: #ff453a;
+  --amber: #ff9f0a;
+  --severe: #ff9f0a;
+  --noeffect: #636366;
+  --line: rgb(255 255 255 / 0.09);
+  --line-strong: rgb(255 255 255 / 0.16);
+  --fill: rgb(255 255 255 / 0.06);
+  --fill-hover: rgb(255 255 255 / 0.1);
+  --panel: rgb(30 31 37 / 0.66);
+  --panel-quiet: rgb(255 255 255 / 0.04);
+  --panel-strong: rgb(32 33 39 / 0.94);
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 12px 40px -12px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 24px 60px -16px rgb(0 0 0 / 0.7);
+  --wash-a: oklch(0.45 0.16 var(--hue) / 0.28);
+  --wash-b: oklch(0.45 0.12 calc(var(--hue) + 60) / 0.18);
+  --body-fill: #3c414c;
+  --glow-strength: 0;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --accent: oklch(0.5 0.13 var(--hue));
-  --ink: #f3f6fa;
+  --accent: oklch(0.52 0.2 var(--hue));
+  --accent-fill: oklch(0.55 0.2 var(--hue));
+  --complement: oklch(0.58 0.22 calc(var(--hue) + 135));
+  --ink: #f5f5f7;
   --raised: #ffffff;
-  --text: #0b1220;
-  --soft: #334155;
-  --muted: #475569;
-  --faint: #94a3b8;
-  --support: #15803d;
-  --contra: #be123c;
-  --amber: #b45309;
-  --severe: #c2410c;
-  --noeffect: #94a3b8;
-  --panel: rgb(255 255 255 / 0.82);
-  --panel-quiet: rgb(255 255 255 / 0.6);
+  --text: #1d1d1f;
+  --soft: #3a3a3c;
+  --muted: #6e6e73;
+  --faint: #a1a1a6;
+  --support: #248a3d;
+  --contra: #d70015;
+  --amber: #b25000;
+  --severe: #c93400;
+  --noeffect: #aeaeb2;
+  --line: rgb(0 0 0 / 0.08);
+  --line-strong: rgb(0 0 0 / 0.14);
+  --fill: rgb(0 0 0 / 0.04);
+  --fill-hover: rgb(0 0 0 / 0.07);
+  --panel: rgb(255 255 255 / 0.72);
+  --panel-quiet: rgb(255 255 255 / 0.55);
   --panel-strong: rgb(255 255 255 / 0.97);
-  --glow-strength: 0;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 10px 30px -10px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.05), 0 24px 60px -16px rgb(0 0 0 / 0.18);
+  --wash-a: oklch(0.85 0.08 var(--hue) / 0.55);
+  --wash-b: oklch(0.88 0.06 calc(var(--hue) + 60) / 0.45);
+  --body-fill: #dde1e8;
 }
 
 /* Tailwind tokens read the runtime variables (inline so utilities use var() directly). */
 @theme inline {
-  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-ink: var(--ink);
   --color-raised: var(--raised);
   --color-cyan: var(--accent); /* "cyan" = the accent colour, whatever hue is chosen */
+  --color-complement: var(--complement);
   --color-text: var(--text);
   --color-soft: var(--soft);
   --color-muted: var(--muted);
@@ -69,6 +92,7 @@
   --color-severe: var(--severe);
   --color-noeffect: var(--noeffect);
   --color-line: var(--line);
+  --color-fill: var(--fill);
 
   /* Legacy aliases kept for older class names */
   --color-surface: var(--raised);
@@ -85,7 +109,7 @@
 
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-pulse-ring: pulse-ring 1.8s ease-out infinite;
-  --animate-scan: scan 2.4s linear infinite;
+  --animate-scan: scan 2.4s ease-in-out infinite;
   --animate-flow: flow 1.2s linear infinite;
   --animate-blink: blink 0.9s steps(2) infinite;
 
@@ -94,13 +118,13 @@
     to { background-position: -200% 0; }
   }
   @keyframes pulse-ring {
-    0% { transform: scale(0.9); opacity: 0.7; }
+    0% { transform: scale(0.9); opacity: 0.6; }
     100% { transform: scale(1.6); opacity: 0; }
   }
   @keyframes scan {
     0% { top: 6%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
     100% { top: 94%; opacity: 0; }
   }
   @keyframes flow {
@@ -118,93 +142,94 @@ html {
 body {
   background: var(--ink);
   color: var(--text);
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
   transition: background-color 0.24s var(--ease-out-hud), color 0.24s var(--ease-out-hud);
 }
 
-/* Display font: Cormorant Garamond reads best slightly heavier and tighter-tracked than the old condensed face. */
 .font-display {
-  font-feature-settings: "lnum" 1;
+  letter-spacing: -0.025em;
 }
 
-/* 40px HUD grid behind everything */
+/* Soft colour wash behind everything (in place of the old grid). */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background:
+    radial-gradient(60% 50% at 15% 0%, var(--wash-a), transparent 70%),
+    radial-gradient(50% 45% at 95% 15%, var(--wash-b), transparent 70%);
   z-index: 0;
 }
 
 /* ---------- Surfaces ---------- */
+/* "hud" is kept as the class name for the main card surface. */
 @utility hud {
   position: relative;
   background: var(--panel);
   border: 1px solid var(--line);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 @utility hud-quiet {
   position: relative;
-  background: var(--panel-quiet);
-  border: 1px solid color-mix(in oklab, var(--accent) 14%, transparent);
+  background: var(--fill);
+  border: 1px solid transparent;
+  border-radius: 16px;
 }
 @utility hud-strong {
   background: var(--panel-strong);
   border: 1px solid var(--line);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
 }
-/* Legacy names kept for not-yet-migrated components */
 @utility glass {
   background: var(--panel);
   border: 1px solid var(--line);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 @utility glass-strong {
   background: var(--panel-strong);
   border: 1px solid var(--line);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
 }
 @utility neon-text {
   color: var(--accent);
-  text-shadow: 0 0 calc(18px * var(--glow-strength)) color-mix(in oklab, var(--accent) 55%, transparent);
 }
 @utility glow {
-  text-shadow: 0 0 calc(18px * var(--glow-strength)) color-mix(in oklab, var(--accent) 55%, transparent);
+  text-shadow: none;
 }
 
-/* Tick rulers */
+/* Former tick rulers: no longer drawn. */
 @utility ruler-x {
-  height: 6px;
-  background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10px);
+  display: none;
 }
 @utility ruler-y {
-  width: 6px;
-  background-image: repeating-linear-gradient(180deg, var(--line) 0 1px, transparent 1px 10px);
+  display: none;
 }
 
-/* Data label: mono, 12px minimum, uppercase */
+/* Small secondary label */
 @utility label {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.003em;
   color: var(--muted);
 }
 
 @utility skeleton {
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent) 4%, transparent) 25%,
-    color-mix(in oklab, var(--accent) 12%, transparent) 50%,
-    color-mix(in oklab, var(--accent) 4%, transparent) 75%
-  );
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--fill) 25%, var(--fill-hover) 50%, var(--fill) 75%);
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }
@@ -216,44 +241,64 @@ body::before {
   justify-content: center;
   gap: 8px;
   min-height: 40px;
-  padding: 0 16px;
-  border-radius: 2px;
-  font-family: var(--font-mono);
-  font-size: 12px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: background 0.16s var(--ease-out-hud), box-shadow 0.16s var(--ease-out-hud), border-color 0.16s, color 0.16s;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background 0.16s var(--ease-out-hud), box-shadow 0.16s var(--ease-out-hud), border-color 0.16s, color 0.16s, transform 0.12s;
   cursor: pointer;
+  &:active:not(:disabled) { transform: scale(0.98); }
 }
 @utility btn-primary {
-  color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 15%, transparent);
-  border: 1px solid var(--accent);
-  box-shadow:
-    0 0 calc(10px * var(--glow-strength)) color-mix(in oklab, var(--accent) 20%, transparent),
-    inset 0 0 10px color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 6px 16px -6px color-mix(in oklab, var(--accent-fill) 70%, transparent);
   &:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--accent) 25%, transparent);
-    box-shadow: 0 0 20px color-mix(in oklab, var(--accent) 40%, transparent);
+    background: color-mix(in oklab, var(--accent-fill) 88%, white);
   }
   &:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
 }
 @utility btn-ghost {
   color: var(--text);
-  background: color-mix(in oklab, var(--accent) 5%, transparent);
-  border: 1px solid var(--line);
+  background: var(--fill);
+  border: 1px solid transparent;
   &:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 15px color-mix(in oklab, var(--accent) 30%, transparent);
+    background: var(--fill-hover);
   }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+/* Range sliders: round thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.1);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+/* Slim, quiet scrollbars inside panels */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 10px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -262,4 +307,9 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Numbers line up in columns (the former mono face is now the system sans). */
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }

@@ -27,7 +27,7 @@ interface RegionButtonsProps {
  */
 export function RegionButtons({ counts, active, highlighted, onSelect, onHover }: RegionButtonsProps) {
   return (
-    <div className="grid grid-cols-4 gap-1" role="group" aria-label="Body regions">
+    <div className="grid grid-cols-4 gap-1.5" role="group" aria-label="Body regions">
       {REGIONS.map((r) => {
         const on = counts[r] > 0;
         const lit = highlighted === r || active === r;
@@ -40,16 +40,16 @@ export function RegionButtons({ counts, active, highlighted, onSelect, onHover }
             onPointerLeave={() => onHover?.(null)}
             aria-expanded={active === r}
             aria-label={`${REGION_LABELS[r]}${on ? `, ${counts[r]} selected` : ""}`}
-            className={`flex min-h-8 items-center justify-between gap-1 border px-1.5 text-left text-xs transition-colors ${
+            className={`flex min-h-8 items-center justify-between gap-1 rounded-full px-3 text-left text-[13px] font-medium transition-colors ${
               lit
-                ? "border-cyan text-text shadow-[0_0_10px_color-mix(in_oklab,var(--accent)_30%,transparent)]"
+                ? "bg-[var(--accent-fill)] text-white"
                 : on
-                  ? "border-line bg-cyan/6 text-text"
-                  : "border-cyan/12 text-muted hover:border-cyan hover:text-text"
+                  ? "bg-cyan/15 text-text"
+                  : "bg-fill text-soft hover:bg-[var(--fill-hover)] hover:text-text"
             }`}
           >
             {SHORT[r]}
-            {on && <span className="font-mono text-[11px] text-cyan">{counts[r]}</span>}
+            {on && <span className={`font-mono text-[11px] ${lit ? "text-white" : "text-cyan"}`}>{counts[r]}</span>}
           </button>
         );
       })}

@@ -71,12 +71,12 @@ export function ReasoningTimeline({ steps, selected, onSelect }: ReasoningTimeli
                 aria-pressed={on}
                 aria-label={s}
                 onClick={() => onSelect(on ? null : i)}
-                className={`w-full border-l-2 px-2 py-1.5 text-left text-[13px] leading-snug transition-colors ${
-                  on ? "border-cyan bg-cyan/7 text-text" : "border-transparent text-soft hover:bg-cyan/4 hover:text-text"
+                className={`flex w-full gap-2 rounded-xl px-2 py-1.5 text-left text-[13px] leading-snug transition-colors ${
+                  on ? "bg-cyan/12 text-text" : "text-soft hover:bg-fill hover:text-text"
                 }`}
               >
-                <span aria-hidden className="mr-1.5 font-mono text-cyan">
-                  {String(i + 1).padStart(2, "0")}
+                <span aria-hidden className={`mt-px grid size-[18px] shrink-0 place-items-center rounded-full text-[10px] font-semibold ${on ? "bg-[var(--accent-fill)] text-white" : "bg-fill text-muted"}`}>
+                  {i + 1}
                 </span>
                 <span aria-hidden>
                   {s.slice(0, shown)}
@@ -88,8 +88,8 @@ export function ReasoningTimeline({ steps, selected, onSelect }: ReasoningTimeli
         })}
       </ol>
       {!done && (
-        <button type="button" onClick={() => setSkipped(true)} className="mt-2 self-start font-mono text-xs text-muted hover:text-cyan">
-          SHOW ALL STEPS
+        <button type="button" onClick={() => setSkipped(true)} className="mt-2 self-start rounded-full px-2.5 py-1 text-[13px] font-medium text-cyan hover:bg-fill">
+          Show all steps
         </button>
       )}
     </div>

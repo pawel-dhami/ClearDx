@@ -11,7 +11,7 @@ npm run dev
 
 Open http://localhost:3000. With no API key the app runs in **mock mode** (deterministic, rule-based fake data).
 
-To use Groq, copy `.env.example` to `.env.local` and set `GROQ_API_KEY`. Optional: `GROQ_MODEL` (default `llama-3.3-70b-versatile`), `PREDICTOR=mock|groq` to force one.
+To use Groq, copy `.env.example` to `.env.local` and set `GROQ_API_KEY`. Optional: `GROQ_MODEL` (default `openai/gpt-oss-120b`), `PREDICTOR=mock|groq` to force one.
 
 ## API
 

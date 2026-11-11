@@ -31,7 +31,7 @@ export function DisplayControls() {
         onClick={() => setTheme(light ? "dark" : "light")}
         aria-label={light ? "Switch to dark theme" : "Switch to light theme"}
         title={light ? "Dark theme" : "Light theme"}
-        className="grid size-9 place-items-center border border-line text-soft transition-colors hover:border-cyan hover:text-cyan"
+        className="grid size-9 place-items-center rounded-full text-soft transition-colors hover:bg-fill hover:text-text"
       >
         {light ? (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -51,14 +51,14 @@ export function DisplayControls() {
         aria-controls={sliderId}
         aria-label="Accent colour"
         title="Accent colour"
-        className="grid size-9 place-items-center border border-line transition-colors hover:border-cyan"
+        className="grid size-9 place-items-center rounded-full transition-colors hover:bg-fill"
       >
-        <span aria-hidden className="size-4 rounded-full bg-cyan shadow-[0_0_8px_var(--accent)]" />
+        <span aria-hidden className="size-[18px] rounded-full bg-[var(--accent-fill)] ring-2 ring-[var(--line-strong)]" />
       </button>
       {open && (
         <div className="hud-strong absolute top-full right-0 z-40 mt-2 w-64 p-4">
-          <label htmlFor={sliderId} className="label mb-3 flex items-center justify-between">
-            Accent colour <span className="text-cyan">{Math.round(hue)}°</span>
+          <label htmlFor={sliderId} className="mb-3 flex items-center justify-between text-sm font-semibold">
+            Accent colour <span className="font-mono font-normal text-muted">{Math.round(hue)}°</span>
           </label>
           <input
             id={sliderId}
@@ -78,8 +78,8 @@ export function DisplayControls() {
           <div className="mt-3 flex items-center justify-between">
             <span className="text-xs text-soft">Green and red stay fixed so evidence colours keep their meaning.</span>
           </div>
-          <button type="button" onClick={() => setHue(DEFAULT_HUE)} className="btn btn-ghost mt-3 !min-h-8 w-full">
-            Reset to cyan
+          <button type="button" onClick={() => setHue(DEFAULT_HUE)} className="btn btn-ghost mt-3 !min-h-9 w-full">
+            Reset to blue
           </button>
         </div>
       )}

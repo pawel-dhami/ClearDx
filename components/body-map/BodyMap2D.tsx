@@ -2,47 +2,123 @@
 
 import type { KeyboardEvent } from "react";
 import { REGION_LABELS } from "@/lib/symptoms";
-import { SHAPES } from "./bodyModel";
+import { SHAPES, SURFACE_SLOTS, type Shape } from "./bodyModel";
+import { ORGANS, surfaceLevels, type Organ } from "./parts";
 import { SPATIAL_REGIONS, type FigureProps, type SpatialRegion } from "./types";
 
 // Model x ∈ [-0.35, 0.35], y ∈ [0, 1]  →  viewBox 140 × 200
 const X = (x: number) => 70 + x * 200;
 const Y = (y: number) => y * 200;
 
+/** One body primitive as SVG: ellipsoids as ellipses, capsules as round-capped strokes. */
+function Part({ s, fill }: { s: Shape; fill: string }) {
+  return s.t === "e" ? (
+    <ellipse cx={X(s.c[0])} cy={Y(s.c[1])} rx={s.r[0] * 200} ry={s.r[1] * 200} fill={fill} />
+  ) : (
+    <line x1={X(s.a[0])} y1={Y(s.a[1])} x2={X(s.b[0])} y2={Y(s.b[1])} stroke={fill} strokeWidth={(s.ra + s.rb) * 200 * 0.92} strokeLinecap="round" />
+  );
+}
+
+function OrganShape({ o, fill, opacity }: { o: Organ; fill: string; opacity: number }) {
+  const s = o.shape;
+  if (s.kind === "ellipsoid")
+    return (
+      <ellipse
+        cx={X(s.c[0])}
+        cy={Y(s.c[1])}
+        rx={s.r[0] * 200}
+        ry={s.r[1] * 200}
+        transform={s.tilt ? `rotate(${(-s.tilt * 180) / Math.PI} ${X(s.c[0])} ${Y(s.c[1])})` : undefined}
+        fill={fill}
+        opacity={opacity}
+      />
+    );
+  if (s.kind === "tube")
+    return (
+      <polyline
+        points={s.path.map((p) => `${X(p[0])},${Y(p[1])}`).join(" ")}
+        fill="none"
+        stroke={fill}
+        strokeWidth={s.radius * 400}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={opacity}
+      />
+    );
+  return (
+    <g opacity={opacity}>
+      {s.centers.map((c, i) => (
+        <circle key={i} cx={X(c[0])} cy={Y(c[1])} r={s.radius * 200} fill={fill} />
+      ))}
+    </g>
+  );
+}
+
+const slotIndex = (s: Shape) => {
+  const x = s.t === "e" ? s.c[0] : (s.a[0] + s.b[0]) / 2;
+  if (s.part === "arm") return SURFACE_SLOTS.indexOf(x > 0 ? "armL" : "armR");
+  if (s.part === "leg") return SURFACE_SLOTS.indexOf(x > 0 ? "legL" : "legR");
+  return SURFACE_SLOTS.indexOf(s.part);
+};
+
 /**
- * Accessible 2D fallback: the same anatomy as the 3D cloud, drawn as dotted SVG
- * regions. Each region is one focusable button (Enter/Space to open its symptoms).
+ * Accessible 2D fallback: the same anatomy as the 3D figure, drawn as one soft
+ * silhouette (a blur + threshold filter melts the parts together) with the organs
+ * inside. Affected parts glow in the contrasting colour; each region is one
+ * focusable button (Enter/Space to open its symptoms).
  */
-export default function BodyMap2D({ counts, active, hovered, onSelect, onHover }: FigureProps) {
+export default function BodyMap2D({ active, hovered, onSelect, onHover, glow = {} }: FigureProps) {
   const onKey = (e: KeyboardEvent, r: SpatialRegion) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onSelect(r);
     }
   };
+  const surface = surfaceLevels(glow);
 
   return (
-    <svg viewBox="0 0 140 200" className="h-full w-full" role="group" aria-label="Body map, 2D">
+    <svg viewBox="22 -2 96 204" className="h-full w-full" role="group" aria-label="Body map, 2D">
       <defs>
-        <pattern id="dots" width="2.4" height="2.4" patternUnits="userSpaceOnUse">
-          <circle cx="1.2" cy="1.2" r="0.55" fill="var(--accent)" />
-        </pattern>
-        <pattern id="dots-strong" width="2" height="2" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.75" fill="var(--accent)" />
-        </pattern>
+        <filter id="body-soften" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="1.2" />
+          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" />
+        </filter>
       </defs>
+
+      {/* silhouette */}
+      <g filter="url(#body-soften)">
+        {SHAPES.map((s, i) => (
+          <Part key={i} s={s} fill="var(--body-fill)" />
+        ))}
+      </g>
+
+      {/* affected surface areas */}
+      {SHAPES.map((s, i) => {
+        const level = surface[slotIndex(s)];
+        return level > 0 ? (
+          <g key={i} filter="url(#body-soften)" opacity={level * 0.6}>
+            <Part s={s} fill="var(--complement)" />
+          </g>
+        ) : null;
+      })}
+
+      {/* organs */}
+      {ORGANS.map((o) => {
+        const level = glow[o.id] ?? 0;
+        if (o.show === "lit" && level === 0) return null;
+        return <OrganShape key={o.id} o={o} fill={level > 0 ? "var(--complement)" : "var(--muted)"} opacity={level > 0 ? 0.55 + level * 0.4 : 0.18} />;
+      })}
+
+      {/* region highlights + hit areas */}
       {SPATIAL_REGIONS.map((r) => {
-        const shapes = SHAPES.filter((s) => s.r === r);
-        const on = counts[r] > 0;
         const lit = hovered === r || active === r;
-        const paint = lit || on ? "url(#dots-strong)" : "url(#dots)";
-        const opacity = lit ? 1 : on ? 0.85 : 0.45;
+        const shapes = SHAPES.filter((s) => s.region === r);
         return (
           <g
             key={r}
             role="button"
             tabIndex={0}
-            aria-label={`${REGION_LABELS[r]}${counts[r] ? `, ${counts[r]} selected` : ""}`}
+            aria-label={REGION_LABELS[r]}
             aria-expanded={active === r}
             onClick={() => onSelect(r)}
             onKeyDown={(e) => onKey(e, r)}
@@ -50,22 +126,18 @@ export default function BodyMap2D({ counts, active, hovered, onSelect, onHover }
             onPointerLeave={() => onHover(null)}
             onFocus={() => onHover(r)}
             onBlur={() => onHover(null)}
-            className="cursor-pointer outline-none [&:focus-visible>*]:stroke-cyan"
-            style={{ opacity, transition: "opacity .16s" }}
+            className="cursor-pointer outline-none"
           >
-            {shapes.map((s, i) =>
-              s.t === "e" ? (
-                <ellipse key={i} cx={X(s.cx)} cy={Y(s.cy)} rx={s.rx * 200} ry={s.ry * 200} fill={paint}
-                  stroke={lit ? "var(--accent)" : "color-mix(in oklab, var(--accent) 35%, transparent)"} strokeWidth={lit ? 0.8 : 0.4} />
-              ) : (
-                <g key={i}>
-                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke={lit ? "var(--accent)" : "color-mix(in oklab, var(--accent) 35%, transparent)"}
-                    strokeWidth={s.w * 400 + (lit ? 1.6 : 0.8)} strokeLinecap="round" />
-                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke="var(--ink)" strokeWidth={s.w * 400} strokeLinecap="round" />
-                  <line x1={X(s.ax)} y1={Y(s.ay)} x2={X(s.bx)} y2={Y(s.by)} stroke={paint} strokeWidth={s.w * 400} strokeLinecap="round" />
-                </g>
-              ),
-            )}
+            <g filter="url(#body-soften)" style={{ opacity: lit ? 0.35 : 0, transition: "opacity .2s" }}>
+              {shapes.map((s, i) => (
+                <Part key={i} s={s} fill="var(--accent)" />
+              ))}
+            </g>
+            <g opacity="0">
+              {shapes.map((s, i) => (
+                <Part key={i} s={s} fill="#000" />
+              ))}
+            </g>
           </g>
         );
       })}

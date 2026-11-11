@@ -1,4 +1,5 @@
 import { findSymptom, REGION_LABELS, type Region } from "@/lib/symptoms";
+import { isDetailAnswer, parseDetailAnswers } from "@/lib/symptomDetail";
 import type { Predictor } from "./predictor";
 import { DURATION_LABELS } from "./schema";
 import type {
@@ -413,7 +414,11 @@ export function mockPredict(input: PredictInput): PredictionResult {
     else if (!s) unknown.push(text);
   }
   const present = new Set(known.map((k) => k.id));
-  const answers = input.answers ?? [];
+  const allAnswers = input.answers ?? [];
+  // Symptom details ("Symptom detail: <label>") are logged by the user, not replies to our questions.
+  const details = parseDetailAnswers(allAnswers);
+  const answers = allAnswers.filter((a) => !isDetailAnswer(a));
+  const SEVERITY_FACTOR = { mild: 0.75, moderate: 1, severe: 1.25 } as const;
 
   const scored: Scored[] = CONDITIONS.map((def) => {
     const entries = Object.entries(def.weights).map(([id, w]) => {
@@ -424,14 +429,23 @@ export function mockPredict(input: PredictInput): PredictionResult {
 
     const contributions: Contribution[] = [];
     let evidence = 0;
+    let onsetFit = 1;
+    // Conditions that typically start abruptly (they favour the shortest durations).
+    const acuteCondition = (def.duration?.["<24h"] ?? 1) >= 0.9;
     for (const k of known) {
       const e = entries.find((x) => x.id === k.id);
       if (!e) continue;
-      evidence += e.weight;
+      const d = details.get(k.text.toLowerCase());
+      // A logged severity scales how strongly a supporting symptom counts.
+      const factor = d?.severity && e.weight > 0 ? SEVERITY_FACTOR[d.severity] : 1;
+      const weight = Math.max(-1, Math.min(1, round2(e.weight * factor)));
+      evidence += weight;
+      if (d?.onset && e.weight > 0) onsetFit *= (d.onset === "sudden") === acuteCondition ? 1.06 : 0.94;
+      const base = e.reason ?? describe(k.text, def.name, e.weight);
       contributions.push({
         symptom: k.text,
-        weight: e.weight,
-        reason: e.reason ?? describe(k.text, def.name, e.weight),
+        weight,
+        reason: factor !== 1 ? `${base} Weighted ${factor > 1 ? "up" : "down"} because you rated it ${d!.severity}.` : base,
       });
     }
 
@@ -442,7 +456,7 @@ export function mockPredict(input: PredictInput): PredictionResult {
     const notes: string[] = [];
     if (def.key && !def.key.some((id) => present.has(id))) confidence *= 0.35;
     const durationFactor = def.duration?.[input.duration] ?? 1;
-    confidence *= durationFactor;
+    confidence *= durationFactor * onsetFit;
     const demo = def.demographics?.(input.age, input.sex);
     if (demo) {
       confidence *= demo.factor;
@@ -536,6 +550,11 @@ export function mockPredict(input: PredictInput): PredictionResult {
       : `Age ${input.age} and sex (${input.sex}) did not materially change the ranking.`,
   );
 
+  if (details.size) {
+    reasoning_steps.push(
+      `Weighed the extra detail you logged for ${details.size} symptom${details.size === 1 ? "" : "s"}: severity scales each symptom's weight, and a sudden or gradual onset favours acute or slower conditions.`,
+    );
+  }
   if (answers.length) {
     reasoning_steps.push(
       `Incorporated ${answers.length} follow-up answer${answers.length === 1 ? "" : "s"} to refine the confidence of the related conditions.`,

@@ -23,9 +23,9 @@ interface FollowUpCardsProps {
 }
 
 const ANSWERS: { v: AnswerValue; label: string; cls: string }[] = [
-  { v: "yes", label: "Yes", cls: "border-support text-support hover:bg-support/10" },
-  { v: "no", label: "No", cls: "border-contra text-contra hover:bg-contra/10" },
-  { v: "not sure", label: "Not sure", cls: "border-amber text-amber hover:bg-amber/10" },
+  { v: "yes", label: "Yes", cls: "bg-support/12 text-support hover:bg-support/20" },
+  { v: "no", label: "No", cls: "bg-contra/12 text-contra hover:bg-contra/20" },
+  { v: "not sure", label: "Not sure", cls: "bg-fill text-text hover:bg-[var(--fill-hover)]" },
 ];
 
 /** One question at a time with always-visible Yes / No / Not sure, then the visible effect of the answer. */
@@ -48,7 +48,7 @@ export function FollowUpCards({ questions, answers, disabled, onAnswer, onUndo, 
             <p className="mt-1.5 text-[13px] text-soft">{q.why_it_matters}</p>
             <div className="mt-auto grid grid-cols-3 gap-2 pt-3" role="group" aria-label="Your answer">
               {ANSWERS.map((a) => (
-                <button key={a.v} type="button" disabled={disabled} onClick={() => onAnswer(q.question, a.v)} className={`btn border !px-0 disabled:opacity-40 ${a.cls}`}>
+                <button key={a.v} type="button" disabled={disabled} onClick={() => onAnswer(q.question, a.v)} className={`btn !px-0 font-semibold disabled:opacity-40 ${a.cls}`}>
                   {a.label}
                 </button>
               ))}
@@ -84,12 +84,12 @@ export function FollowUpCards({ questions, answers, disabled, onAnswer, onUndo, 
       {answers.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Your answers">
           {answers.map((a) => (
-            <li key={a.question} className="flex items-center gap-1.5 border border-line py-0.5 pr-0.5 pl-2 text-xs">
+            <li key={a.question} className="flex items-center gap-1.5 rounded-full bg-fill py-0.5 pr-0.5 pl-2.5 text-xs">
               <span className="max-w-40 truncate text-soft" title={a.question}>
                 {a.question}
               </span>
-              <span className="font-mono text-text uppercase">{a.answer}</span>
-              <button type="button" onClick={() => onUndo(a.question)} disabled={disabled} aria-label={`Undo answer to: ${a.question}`} className="grid size-6 place-items-center text-muted hover:text-cyan disabled:opacity-40">
+              <span className="font-mono text-text">{a.answer}</span>
+              <button type="button" onClick={() => onUndo(a.question)} disabled={disabled} aria-label={`Undo answer to: ${a.question}`} className="grid size-6 place-items-center rounded-full text-muted hover:bg-[var(--fill-hover)] hover:text-text disabled:opacity-40">
                 ↺
               </button>
             </li>

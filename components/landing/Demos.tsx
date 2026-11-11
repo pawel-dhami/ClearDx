@@ -36,7 +36,7 @@ export function StepPickScene() {
   }, [reduced]);
   const shown = reduced ? 3 : n;
   return (
-    <div className="flex h-32 items-center gap-5 border border-cyan/12 bg-cyan/[0.03] px-5" aria-hidden>
+    <div className="flex h-32 items-center gap-5 rounded-2xl bg-fill px-5" aria-hidden>
       <svg width="44" height="96" viewBox="0 0 44 96">
         <circle cx="22" cy="10" r="8" fill="none" stroke="var(--accent)" strokeOpacity=".5" />
         <rect x="10" y="22" width="24" height="30" fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)" />
@@ -48,9 +48,9 @@ export function StepPickScene() {
             key={s}
             animate={{ opacity: i < shown ? 1 : 0, y: i < shown ? 0 : -10 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="flex min-h-8 items-center gap-2 rounded-[2px] border border-cyan bg-cyan/6 px-2.5 text-sm"
+            className="flex min-h-8 items-center gap-2 rounded-full bg-raised px-3 text-sm shadow-sm ring-1 ring-[var(--line)]"
           >
-            <span className="font-mono text-[11px] text-muted">0{i + 1}</span>
+            <span className="font-mono text-xs text-faint">{i + 1}</span>
             {s}
           </motion.li>
         ))}
@@ -62,11 +62,11 @@ export function StepPickScene() {
 export function StepPredictScene() {
   const v = useLoop(0.81);
   return (
-    <div className="flex h-32 items-center gap-5 border border-cyan/12 bg-cyan/[0.03] px-5" aria-hidden>
+    <div className="flex h-32 items-center gap-5 rounded-2xl bg-fill px-5" aria-hidden>
       <ConfidenceRing value={v} size={96} />
       <ul className="flex-1 space-y-1.5 text-sm">
         <li className="flex justify-between">
-          <span className="font-display font-semibold tracking-[0.05em] uppercase">Influenza</span>
+          <span className="font-display font-semibold">Influenza</span>
           <span className="font-mono text-cyan">81%</span>
         </li>
         <li className="flex justify-between text-soft">
@@ -90,13 +90,13 @@ export function StepWhyScene() {
     { d: "M70 102 C140 102 150 70 220 70", c: "var(--contra)", w: 2.5, dash: "6 5" },
   ];
   return (
-    <div className="h-32 border border-cyan/12 bg-cyan/[0.03]" aria-hidden>
+    <div className="h-32 rounded-2xl bg-fill " aria-hidden>
       <svg viewBox="0 0 300 132" className="h-full w-full">
         <g fontSize="11" fill="var(--muted)" style={{ fontFamily: "var(--font-mono)" }}>
-          <text x="12" y="34">FEVER</text>
-          <text x="12" y="70">ACHES</text>
-          <text x="12" y="106">SNEEZE</text>
-          <text x="232" y="70" fill="var(--text)">INFLUENZA</text>
+          <text x="12" y="34">Fever</text>
+          <text x="12" y="70">Aches</text>
+          <text x="12" y="106">Sneeze</text>
+          <text x="232" y="70" fill="var(--text)">Influenza</text>
         </g>
         {edges.map((e, i) => (
           <motion.path

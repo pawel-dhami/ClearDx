@@ -7,9 +7,9 @@ export function Disclaimer({ className = "" }: { className?: string }) {
     <p
       role="note"
       aria-label="Medical disclaimer"
-      className={`relative z-10 flex flex-wrap items-center gap-x-3 gap-y-1 border-l-2 border-amber bg-amber/5 px-3 py-2 text-[13px] text-text ${className}`}
+      className={`relative z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-amber/10 px-4 py-2 text-[13px] text-soft ${className}`}
     >
-      <span className="font-mono text-[11px] font-bold tracking-[0.08em] text-amber">EDUCATIONAL DEMO</span>
+      <span className="font-semibold text-amber">Educational demo</span>
       <span>
         Not medical advice. Predictions can be wrong. If you feel unwell or something seems urgent, contact a clinician
         or your local emergency number.

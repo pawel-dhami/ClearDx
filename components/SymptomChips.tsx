@@ -11,16 +11,18 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type KeyboardEvent, type Ref } from "react";
 import { springs } from "@/lib/motion";
+import { hasDetail, summarize, type SymptomDetail } from "@/lib/symptomDetail";
+import { SymptomDetailPanel } from "./SymptomDetailPanel";
 
 interface SymptomChipsProps {
   symptoms: string[];
   onReorder: (next: string[]) => void;
   onRemove: (label: string) => void;
-  /** What-if mode: clicking a chip toggles it in/out of the prediction. */
+  /** What-if mode: clicking a symptom toggles it in/out of the prediction. */
   whatIf?: boolean;
   disabled?: Set<string>;
   onToggleEnabled?: (label: string) => void;
@@ -29,16 +31,32 @@ interface SymptomChipsProps {
   /** Symptoms that were sent but influence nothing. */
   noEffect?: Set<string>;
   onHover?: (label: string | null) => void;
+  /** Optional per-symptom details (severity, onset, pattern, side, note). */
+  details?: Record<string, SymptomDetail>;
+  onDetail?: (label: string, detail: SymptomDetail) => void;
 }
 
 /**
- * Draggable, removable chips. dnd-kit handles pointer dragging and hit-testing;
- * items reorder live on drag-over and Motion's `layout` animates the reflow
- * (dnd-kit transforms are intentionally unused). Keyboard: arrow keys reorder,
- * Delete/Backspace removes; in what-if mode Enter/Space or click toggles.
+ * The symptom log: a ranked, draggable list. Each symptom can open an optional
+ * detail panel. dnd-kit handles pointer dragging; Motion's `layout` animates the
+ * reflow. Keyboard: arrow keys reorder, Delete/Backspace removes; in what-if mode
+ * Enter/Space or click toggles a symptom in or out.
  */
-export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, disabled, onToggleEnabled, highlighted = [], noEffect, onHover }: SymptomChipsProps) {
+export function SymptomChips({
+  symptoms,
+  onReorder,
+  onRemove,
+  whatIf = false,
+  disabled,
+  onToggleEnabled,
+  highlighted = [],
+  noEffect,
+  onHover,
+  details = {},
+  onDetail,
+}: SymptomChipsProps) {
   const [dragging, setDragging] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const nudge = (label: string, delta: number) => {
@@ -52,7 +70,10 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
     if (a !== -1 && b !== -1 && a !== b) onReorder(arrayMove(symptoms, a, b));
   };
 
-  const onStart = (e: DragStartEvent) => setDragging(String(e.active.id));
+  const onStart = (e: DragStartEvent) => {
+    setOpen(null);
+    setDragging(String(e.active.id));
+  };
   const onOver = (e: DragOverEvent) => e.over && move(String(e.active.id), String(e.over.id));
   const onEnd = (e: DragEndEvent) => {
     if (e.over) move(String(e.active.id), String(e.over.id));
@@ -61,9 +82,9 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
 
   if (symptoms.length === 0) {
     return (
-      <div className="grid h-full min-h-24 place-items-center border border-dashed border-cyan/18 p-4 text-center">
+      <div className="grid h-full min-h-24 place-items-center rounded-2xl bg-fill p-4 text-center">
         <div>
-          <p className="font-display text-lg font-semibold tracking-[0.05em] uppercase">No symptoms yet</p>
+          <p className="font-display text-lg font-semibold">No symptoms yet</p>
           <p className="mt-1 text-sm text-soft">Choose a region above or point at the body.</p>
         </div>
       </div>
@@ -72,11 +93,11 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onStart} onDragOver={onOver} onDragEnd={onEnd} onDragCancel={() => setDragging(null)}>
-      <SortableContext items={symptoms} strategy={rectSortingStrategy}>
-        <ul className="flex flex-wrap gap-1.5" aria-label="Selected symptoms, in order of importance">
+      <SortableContext items={symptoms} strategy={verticalListSortingStrategy}>
+        <ul className="flex flex-col gap-1.5" aria-label="Selected symptoms, in order of importance">
           <AnimatePresence initial={false} mode="popLayout">
             {symptoms.map((s, i) => (
-              <Chip
+              <Row
                 key={s}
                 label={s}
                 index={i}
@@ -85,6 +106,10 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
                 noEffect={noEffect?.has(s) ?? false}
                 whatIf={whatIf}
                 highlighted={highlighted.includes(s)}
+                detail={details[s]}
+                expanded={open === s}
+                onExpand={onDetail ? () => setOpen((o) => (o === s ? null : s)) : undefined}
+                onDetail={onDetail}
                 onRemove={onRemove}
                 onNudge={nudge}
                 onToggle={onToggleEnabled}
@@ -96,8 +121,8 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
       </SortableContext>
       <DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(.22,1,.36,1)" }}>
         {dragging ? (
-          <motion.div initial={{ scale: 1 }} animate={{ scale: 1.06 }} transition={springs.snappy} className="cursor-grabbing">
-            <ChipFace label={dragging} index={symptoms.indexOf(dragging)} off={disabled?.has(dragging) ?? false} lifted />
+          <motion.div initial={{ scale: 1 }} animate={{ scale: 1.03 }} transition={springs.snappy} className="cursor-grabbing">
+            <RowFace label={dragging} index={symptoms.indexOf(dragging)} off={disabled?.has(dragging) ?? false} detail={details[dragging]} lifted />
           </motion.div>
         ) : null}
       </DragOverlay>
@@ -105,7 +130,7 @@ export function SymptomChips({ symptoms, onReorder, onRemove, whatIf = false, di
   );
 }
 
-interface ChipProps {
+interface RowProps {
   label: string;
   index: number;
   ghost: boolean;
@@ -113,6 +138,10 @@ interface ChipProps {
   noEffect: boolean;
   whatIf: boolean;
   highlighted: boolean;
+  detail?: SymptomDetail;
+  expanded: boolean;
+  onExpand?: () => void;
+  onDetail?: (label: string, d: SymptomDetail) => void;
   onRemove: (l: string) => void;
   onNudge: (l: string, delta: number) => void;
   onToggle?: (l: string) => void;
@@ -121,7 +150,7 @@ interface ChipProps {
   ref?: Ref<HTMLLIElement>;
 }
 
-function Chip({ label, index, ghost, off, noEffect, whatIf, highlighted, onRemove, onNudge, onToggle, onHover, ref }: ChipProps) {
+function Row({ label, index, ghost, off, noEffect, whatIf, highlighted, detail, expanded, onExpand, onDetail, onRemove, onNudge, onToggle, onHover, ref }: RowProps) {
   const { setNodeRef, listeners } = useSortable({ id: label });
   const setRefs = (el: HTMLLIElement | null) => {
     setNodeRef(el);
@@ -129,7 +158,7 @@ function Chip({ label, index, ghost, off, noEffect, whatIf, highlighted, onRemov
     else if (ref) ref.current = el;
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    const delta = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+    const delta = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key];
     if (delta) {
       e.preventDefault();
       onNudge(label, delta);
@@ -138,25 +167,29 @@ function Chip({ label, index, ghost, off, noEffect, whatIf, highlighted, onRemov
       onRemove(label);
     }
   };
+  const panelId = `detail-${label.replace(/\W+/g, "-")}`;
   return (
     <motion.li
       ref={setRefs}
       layout
-      initial={{ opacity: 0, scale: 0.7, y: 6 }}
+      initial={{ opacity: 0, scale: 0.9, y: 6 }}
       animate={{ opacity: ghost ? 0.3 : 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.15 } }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
       transition={springs.layout}
-      className="touch-none"
       onPointerEnter={() => onHover?.(label)}
       onPointerLeave={() => onHover?.(null)}
     >
-      <ChipFace
+      <RowFace
         label={label}
         index={index}
         off={off}
         noEffect={noEffect}
         highlighted={highlighted}
         whatIf={whatIf}
+        detail={detail}
+        expanded={expanded}
+        panelId={panelId}
+        onExpand={onExpand}
         onRemove={() => onRemove(label)}
         handleProps={{
           ...listeners,
@@ -165,11 +198,26 @@ function Chip({ label, index, ghost, off, noEffect, whatIf, highlighted, onRemov
           "aria-pressed": whatIf ? !off : undefined,
         }}
       />
+      <AnimatePresence initial={false}>
+        {expanded && onDetail && (
+          <motion.div
+            key="panel"
+            id={panelId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={springs.snappy}
+            className="overflow-hidden"
+          >
+            <SymptomDetailPanel label={label} detail={detail ?? {}} onChange={(d) => onDetail(label, d)} onDone={onExpand!} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.li>
   );
 }
 
-function ChipFace({
+function RowFace({
   label,
   index,
   off,
@@ -177,6 +225,10 @@ function ChipFace({
   lifted,
   highlighted,
   whatIf,
+  detail,
+  expanded,
+  panelId,
+  onExpand,
   onRemove,
   handleProps,
 }: {
@@ -187,46 +239,78 @@ function ChipFace({
   lifted?: boolean;
   highlighted?: boolean;
   whatIf?: boolean;
+  detail?: SymptomDetail;
+  expanded?: boolean;
+  panelId?: string;
+  onExpand?: () => void;
   onRemove?: () => void;
   handleProps?: Record<string, unknown>;
 }) {
   const hint = whatIf
     ? `${off ? "Excluded" : "Included"}. Click to ${off ? "include" : "exclude"}; arrow keys reorder.`
     : "Drag or use arrow keys to reorder, Delete to remove.";
+  const summary = summarize(detail);
   const tone = lifted
-    ? "border-cyan bg-raised shadow-[0_10px_30px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+    ? "bg-raised shadow-[var(--shadow-lg)]"
     : highlighted
-      ? "border-cyan bg-cyan/14 shadow-[0_0_12px_color-mix(in_oklab,var(--accent)_35%,transparent)]"
+      ? "bg-cyan/14 ring-1 ring-[var(--accent)]"
       : off
-        ? "border-dashed border-noeffect bg-transparent text-muted"
-        : noEffect
-          ? "border-muted/35 bg-transparent text-soft"
-          : "border-line bg-cyan/6 hover:border-cyan";
+        ? "bg-transparent outline-1 outline-dashed outline-[var(--line-strong)] text-muted"
+        : "bg-fill hover:bg-[var(--fill-hover)]";
   return (
-    <div className={`flex min-h-8 items-center rounded-[2px] border text-sm transition-colors ${tone}`}>
+    <div className={`flex min-h-10 items-center gap-1 rounded-xl pr-1 text-sm transition-colors ${tone}`}>
       <button
         type="button"
         {...handleProps}
-        aria-label={`${label}, position ${index + 1}${noEffect ? ", no effect" : ""}. ${hint}`}
-        className="flex min-h-8 cursor-grab items-center gap-2 pr-1 pl-2.5 active:cursor-grabbing"
+        aria-label={`${label}, position ${index + 1}${noEffect ? ", no effect" : ""}${summary ? `, ${summary}` : ""}. ${hint}`}
+        className="flex min-h-10 min-w-0 flex-1 cursor-grab items-center gap-2.5 py-1.5 pl-3 text-left active:cursor-grabbing"
       >
-        <span aria-hidden className="font-mono text-[11px] text-muted">
-          {String(index + 1).padStart(2, "0")}
+        <span aria-hidden className="font-mono text-xs text-faint">
+          {index + 1}
         </span>
-        <span className={off ? "line-through decoration-muted" : ""}>{label}</span>
-        {noEffect && !off && <span className="font-mono text-[10px] tracking-[0.06em] text-muted">NO EFFECT</span>}
+        <span className="min-w-0">
+          <span className={`block truncate ${off ? "line-through decoration-muted" : ""}`}>{label}</span>
+          {(summary || (noEffect && !off)) && (
+            <span className="block truncate text-xs text-muted">
+              {summary}
+              {summary && noEffect && !off ? " · " : ""}
+              {noEffect && !off ? "No effect on the result" : ""}
+            </span>
+          )}
+        </span>
       </button>
+      {onExpand && (
+        <button
+          type="button"
+          onClick={onExpand}
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          aria-label={`${hasDetail(detail) ? "Edit" : "Add"} details for ${label}`}
+          className={`flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors ${
+            expanded ? "bg-[var(--accent-fill)] text-white" : hasDetail(detail) ? "bg-cyan/15 text-cyan" : "text-muted hover:bg-[var(--fill-hover)] hover:text-text"
+          }`}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+            <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+            <circle cx="16" cy="6" r="2" />
+            <circle cx="10" cy="12" r="2" />
+            <circle cx="18" cy="18" r="2" />
+          </svg>
+          {hasDetail(detail) ? "Edit" : "Details"}
+        </button>
+      )}
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${label}`}
-          className="mr-0.5 grid size-7 place-items-center text-xs text-muted transition-colors hover:text-contra"
+          className="grid size-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-contra/12 hover:text-contra"
         >
-          ✕
+          <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+            <path d="M1 1l8 8M9 1L1 9" />
+          </svg>
         </button>
       )}
-      {!onRemove && <span className="pr-2.5" />}
     </div>
   );
 }

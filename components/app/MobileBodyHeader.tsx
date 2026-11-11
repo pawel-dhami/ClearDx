@@ -34,7 +34,7 @@ export function MobileBodyHeader({ counts, top, loading, error, expanded, onTogg
           <span className="mt-1 block truncate text-sm text-soft">
             {regions.length ? regions.map((r) => REGION_LABELS[r].split(" ")[0]).join(" · ") : "Tap to open the body map"}
           </span>
-          <span className="label mt-1 block !text-cyan">{expanded ? "▴ Hide body map" : "▾ Show body map"}</span>
+          <span className="mt-1 block text-[13px] font-medium text-cyan">{expanded ? "Hide body map" : "Show body map"}</span>
         </span>
         <span className="text-right" aria-live="polite">
           {loading ? (
@@ -43,7 +43,7 @@ export function MobileBodyHeader({ counts, top, loading, error, expanded, onTogg
             <span className="label !text-contra">Failed</span>
           ) : top ? (
             <>
-              <span className="block font-display text-base leading-none font-bold tracking-[0.05em] uppercase">{top.condition}</span>
+              <span className="block font-display text-base leading-tight font-semibold">{top.condition}</span>
               <span className="font-mono text-2xl font-bold text-cyan">
                 {pct(top.confidence)}
                 <span className="text-sm text-muted">%</span>

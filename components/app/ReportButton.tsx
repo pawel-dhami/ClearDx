@@ -24,7 +24,7 @@ export function ReportButton({ disabled, ...data }: Props) {
       type="button"
       onClick={go}
       disabled={disabled || state === "busy"}
-      className={`btn btn-ghost !min-h-8 !px-3 ${state === "error" ? "!border-contra !text-contra" : ""}`}
+      className={`btn btn-ghost !min-h-8 !px-3 ${state === "error" ? "!bg-contra/12 !text-contra" : ""}`}
       aria-live="polite"
     >
       {state === "busy" ? (
