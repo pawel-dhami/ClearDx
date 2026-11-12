@@ -24,7 +24,8 @@ export async function downloadReport(data: Omit<ReportData, "generatedAt" | "rep
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ClearDx-report-${generatedAt.toISOString().slice(0, 10)}-${reportId}.pdf`;
+  const who = data.patientName ? `${data.patientName.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40)}-` : "";
+  a.download = `ClearDx-report-${who}${generatedAt.toISOString().slice(0, 10)}-${reportId}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

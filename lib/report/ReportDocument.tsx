@@ -58,6 +58,8 @@ const s = StyleSheet.create({
 
 export interface ReportData {
   response: PredictResponse;
+  /** Shown at the top of the inputs when the analysis belongs to a saved patient. */
+  patientName?: string;
   /** Every symptom the user listed, in their ranked order. */
   symptoms: string[];
   excluded: string[];
@@ -134,6 +136,12 @@ export function ReportDocument(d: ReportData) {
         <Text style={s.h2}>
           <Text style={s.num}>01 </Text>Your inputs
         </Text>
+        {d.patientName && (
+          <View style={s.kvRow}>
+            <Text style={s.kvKey}>Patient</Text>
+            <Text style={[s.kvVal, { fontFamily: "Helvetica-Bold" }]}>{d.patientName}</Text>
+          </View>
+        )}
         <View style={s.kvRow}>
           <Text style={s.kvKey}>Age · Sex</Text>
           <Text style={s.kvVal}>

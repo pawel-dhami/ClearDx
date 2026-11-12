@@ -21,10 +21,11 @@ export interface SavedAnalysis {
   top_confidence: number | null;
   input: SavedInput;
   result: PredictionResult;
+  patient_id: string | null;
 }
 
-/** Saves one analysis for the signed-in user. Returns false when signed out / auth off. */
-export async function saveAnalysis(source: PredictorSource, input: SavedInput, result: PredictionResult) {
+/** Saves one analysis for the signed-in user, optionally for a patient. Returns false when signed out / auth off. */
+export async function saveAnalysis(source: PredictorSource, input: SavedInput, result: PredictionResult, patientId: string | null = null) {
   const sb = getSupabase();
   if (!sb) return false;
   const { data } = await sb.auth.getUser();
@@ -36,15 +37,19 @@ export async function saveAnalysis(source: PredictorSource, input: SavedInput, r
     top_confidence: top?.confidence ?? null,
     input,
     result,
+    patient_id: patientId,
   });
   if (error) throw error;
   return true;
 }
 
-export async function listAnalyses(limit = 50): Promise<SavedAnalysis[]> {
+/** Newest first; pass a patient id to list only that patient's reports. */
+export async function listAnalyses(limit = 50, patientId?: string): Promise<SavedAnalysis[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb.from("analyses").select("*").order("created_at", { ascending: false }).limit(limit);
+  let q = sb.from("analyses").select("*").order("created_at", { ascending: false }).limit(limit);
+  if (patientId) q = q.eq("patient_id", patientId);
+  const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as SavedAnalysis[];
 }
@@ -53,5 +58,13 @@ export async function deleteAnalysis(id: string) {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("analyses").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Links a saved analysis to a patient (or unlinks it with null). */
+export async function assignAnalysis(id: string, patientId: string | null) {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("analyses").update({ patient_id: patientId }).eq("id", id);
   if (error) throw error;
 }

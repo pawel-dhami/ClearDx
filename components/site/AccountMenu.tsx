@@ -54,6 +54,9 @@ export function AccountMenu() {
       </button>
       {open && (
         <div role="menu" className="hud-strong absolute top-full right-0 z-40 mt-2 w-52 p-1.5">
+          <Link role="menuitem" href="/patients" onClick={() => setOpen(false)} className="block rounded-[10px] px-3 py-2 text-sm hover:bg-fill">
+            Patients
+          </Link>
           <Link role="menuitem" href="/history" onClick={() => setOpen(false)} className="block rounded-[10px] px-3 py-2 text-sm hover:bg-fill">
             History
           </Link>

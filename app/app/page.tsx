@@ -28,6 +28,10 @@ import type { Duration, FollowUpAnswer, PredictInput, Sex } from "@/lib/predict/
 import { findSymptom, REGIONS, symptomsInRegion, type Region } from "@/lib/symptoms";
 import { inputKey, usePrediction } from "@/lib/usePrediction";
 import { saveAnalysis, type SavedInput } from "@/lib/history";
+import { PatientPicker } from "@/components/app/PatientPicker";
+import { ageFrom, usePatients, type Patient } from "@/lib/patients";
+import { authEnabled } from "@/lib/supabase/config";
+import { useSession } from "@/lib/useSession";
 import { glowForSymptoms } from "@/components/body-map/parts";
 import { detailsToAnswers, type SymptomDetail } from "@/lib/symptomDetail";
 
@@ -53,16 +57,32 @@ export default function PredictorApp() {
   const { small } = useBodyEnvironment();
   const revealResults = useRef(false);
   // Manual runs (Analyze, follow-up answers) are saved to history for signed-in users once they return.
-  const pendingSave = useRef<Omit<SavedInput, "noEffect"> | null>(null);
+  const pendingSave = useRef<(Omit<SavedInput, "noEffect"> & { patientId: string | null }) | null>(null);
+  // Optional patient this analysis is for (signed-in users; saved with the analysis, named on the PDF).
+  const { user } = useSession();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const choosePatient = (p: Patient | null) => {
+    setPatient(p);
+    const a = ageFrom(p?.birth_year ?? null);
+    if (a !== null) setAge(a);
+    if (p?.sex) setSex(p.sex);
+  };
+  // "New analysis" from a patient's page opens /app?patient=<id> with that patient chosen.
+  const { patients, setPatients } = usePatients(!!user, (rows) => {
+    const id = new URLSearchParams(window.location.search).get("patient");
+    const p = id ? rows.find((r) => r.id === id) : undefined;
+    if (p) choosePatient(p);
+  });
   const [savedFor, setSavedFor] = useState<object | null>(null);
 
   useEffect(() => {
-    const p = pendingSave.current;
-    if (!response || !p) return;
+    const pending = pendingSave.current;
+    if (!response || !pending) return;
     pendingSave.current = null;
+    const { patientId, ...p } = pending;
     const used = new Set(response.result.predictions.flatMap((x) => x.contributions.map((c) => c.symptom.toLowerCase())));
     const noEffect = p.symptoms.filter((x) => !p.excluded.includes(x) && !used.has(x.toLowerCase()));
-    saveAnalysis(response.source, { ...p, noEffect }, response.result)
+    saveAnalysis(response.source, { ...p, noEffect }, response.result, patientId)
       .then((ok) => ok && setSavedFor(response))
       .catch((e) => console.error("[history] save failed", e));
   }, [response]);
@@ -157,7 +177,7 @@ export default function PredictorApp() {
     if (!on) setExcluded(new Set());
   };
   const queueSave = (next: FollowUpAnswer[]) => {
-    pendingSave.current = { symptoms, age, sex, duration, answers: [...detailAnswers, ...next], excluded: whatIf ? [...excluded] : [] };
+    pendingSave.current = { symptoms, age, sex, duration, answers: [...detailAnswers, ...next], excluded: whatIf ? [...excluded] : [], patientId: patient?.id ?? null };
   };
   const analyze = () => {
     revealResults.current = true;
@@ -263,7 +283,25 @@ export default function PredictorApp() {
       )}
 
       <div className="px-3 pt-3 lg:px-6">
-        <AboutStrip age={age} sex={sex} duration={duration} onAge={setAge} onSex={setSex} onDuration={setDuration}>
+        <AboutStrip
+          age={age}
+          sex={sex}
+          duration={duration}
+          onAge={setAge}
+          onSex={setSex}
+          onDuration={setDuration}
+          lead={
+            authEnabled && (
+              <PatientPicker
+                signedIn={!!user}
+                patients={patients}
+                value={patient}
+                onChange={choosePatient}
+                onCreated={(p) => setPatients((all) => [...(all ?? []), p].sort((a, b) => a.name.localeCompare(b.name)))}
+              />
+            )
+          }
+        >
           {symptoms.length > 0 && <WhatIfSwitch on={whatIf} onChange={setWhatIfMode} />}
           <button type="button" onClick={analyze} disabled={symptoms.length === 0 || active.length === 0 || loading} className="btn btn-primary">
             {loading ? (
@@ -367,6 +405,7 @@ export default function PredictorApp() {
                     sex={sex}
                     duration={duration}
                     answers={answers}
+                    patientName={patient?.name}
                   />
                   </>
                 )

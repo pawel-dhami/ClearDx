@@ -2,14 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ReportButton } from "@/components/app/ReportButton";
-import { SeverityTag } from "@/components/app/Predictions";
+import { AnalysisCard } from "@/components/app/AnalysisCard";
 import { Disclaimer } from "@/components/Disclaimer";
-import { PanelTitle } from "@/components/site/Hud";
 import { Nav } from "@/components/site/Nav";
-import { pct } from "@/lib/explain";
 import { deleteAnalysis, listAnalyses, type SavedAnalysis } from "@/lib/history";
-import type { Duration, Sex } from "@/lib/predict/types";
+import { usePatients } from "@/lib/patients";
 import { authEnabled } from "@/lib/supabase/config";
 import { useSession } from "@/lib/useSession";
 
@@ -17,6 +14,8 @@ export default function HistoryPage() {
   const { user, ready } = useSession();
   const [items, setItems] = useState<SavedAnalysis[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { patients } = usePatients(!!user);
+  const names = new Map((patients ?? []).map((p) => [p.id, p.name]));
 
   useEffect(() => {
     if (!user) return;
@@ -50,7 +49,14 @@ export default function HistoryPage() {
       />
       <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 py-10 sm:px-8">
         <p className="label mb-2">Account</p>
-        <h1 className="mb-8 font-display text-4xl font-semibold">Your history</h1>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <h1 className="font-display text-4xl font-semibold">Your history</h1>
+          {user && (
+            <Link href="/patients" className="btn btn-ghost">
+              Patients
+            </Link>
+          )}
+        </div>
 
         {!authEnabled ? (
           <p className="text-soft">Sign-in isn&apos;t set up on this deployment, so there&apos;s no saved history.</p>
@@ -82,42 +88,9 @@ export default function HistoryPage() {
           </section>
         ) : (
           <ul className="space-y-3" aria-label="Saved analyses, newest first">
-            {items.map((a) => {
-              const top = [...a.result.predictions].sort((x, y) => y.confidence - x.confidence)[0];
-              return (
-                <li key={a.id} className="hud flex flex-wrap items-center gap-5 p-5">
-                  <span className="w-20 shrink-0 font-mono text-3xl font-bold text-cyan">{a.top_confidence != null ? `${pct(a.top_confidence)}%` : "—"}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <PanelTitle>{new Date(a.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</PanelTitle>
-                      <span className="rounded-full bg-amber/12 px-2 py-0.5 text-[11px] font-semibold text-amber">{a.source === "mock" ? "Demo mode" : "Live model"}</span>
-                    </div>
-                    <p className="mt-1 flex flex-wrap items-center gap-3">
-                      <span className="font-display text-xl font-semibold">{a.top_condition ?? "No match"}</span>
-                      {top && <SeverityTag severity={top.severity} />}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-soft">
-                      {a.input.symptoms.join(" · ")} · age {a.input.age} · {a.input.duration}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ReportButton
-                      response={{ source: a.source, result: a.result }}
-                      symptoms={a.input.symptoms}
-                      excluded={a.input.excluded ?? []}
-                      noEffect={a.input.noEffect ?? []}
-                      age={a.input.age}
-                      sex={a.input.sex as Sex}
-                      duration={a.input.duration as Duration}
-                      answers={a.input.answers ?? []}
-                    />
-                    <button type="button" onClick={() => remove(a.id)} className="btn btn-ghost !min-h-8 !px-3 hover:!border-contra hover:!text-contra" aria-label="Delete this saved analysis">
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
+            {items.map((a) => (
+              <AnalysisCard key={a.id} analysis={a} patientName={a.patient_id ? names.get(a.patient_id) : undefined} onDelete={remove} />
+            ))}
           </ul>
         )}
       </main>

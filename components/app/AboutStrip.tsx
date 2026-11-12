@@ -68,13 +68,16 @@ interface AboutStripProps {
   onSex: (s: Sex) => void;
   onDuration: (d: Duration) => void;
   children?: React.ReactNode;
+  /** Shown before "About you" (e.g. the patient picker). */
+  lead?: React.ReactNode;
 }
 
 /** Compact "About you" strip: age stepper, sex, duration; right-hand slot for controls. */
-export function AboutStrip({ age, sex, duration, onAge, onSex, onDuration, children }: AboutStripProps) {
+export function AboutStrip({ age, sex, duration, onAge, onSex, onDuration, children, lead }: AboutStripProps) {
   const clamp = (n: number) => Math.max(0, Math.min(120, Math.round(n) || 0));
   return (
     <section aria-label="About you and controls" className="flex flex-wrap items-center gap-x-5 gap-y-2.5 py-1">
+      {lead}
       <span className="text-[13px] font-semibold text-text">About you</span>
       <div className="flex items-center gap-2">
         <label htmlFor="age" className="label">
