@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 /** Section title, e.g. "Top match". */
 export function PanelTitle({ children, id, className = "" }: { children: ReactNode; id?: string; className?: string }) {
   return (
-    <h2 id={id} className={`text-[15px] font-semibold tracking-tight text-text ${className}`}>
+    <h2 id={id} className={`flex min-h-7 items-center gap-2 text-[15px] font-semibold tracking-tight text-text ${className}`}>
       {children}
     </h2>
   );

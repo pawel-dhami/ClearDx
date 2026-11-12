@@ -128,7 +128,7 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
       aria-labelledby="top-title"
       onPointerEnter={() => onHighlight({ kind: "condition", id: p.condition })}
       onPointerLeave={() => onHighlight(null)}
-      className={`hud flex flex-none flex-col p-5 transition-colors ${lit ? "!border-[var(--accent)]" : ""}`}
+      className={`hud flex flex-none flex-col p-4 transition-colors ${lit ? "!border-[var(--accent)]" : ""}`}
     >
       <div className="flex items-center justify-between gap-3">
         <PanelTitle id="top-title">Top match</PanelTitle>
@@ -195,7 +195,7 @@ export function TopPrediction({ prediction: p, before, excludedLabel, delta, noE
 
 export function TopPredictionSkeleton({ count }: { count: number }) {
   return (
-    <section className="hud flex flex-1 items-center gap-6 p-5" aria-busy="true" aria-label="Analyzing">
+    <section className="hud flex flex-1 items-center gap-6 p-4" aria-busy="true" aria-label="Analyzing">
       <svg width="150" height="150" viewBox="0 0 160 160" className="shrink-0" aria-hidden>
         <circle cx="80" cy="80" r="70" fill="none" stroke="var(--fill-hover)" strokeWidth="8" />
         <circle cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" strokeDasharray="90 350" className="origin-center animate-spin [animation-duration:1.6s]" />
@@ -215,24 +215,26 @@ export function TopPredictionSkeleton({ count }: { count: number }) {
 
 export function TopPredictionEmpty() {
   return (
-    <section className="hud flex flex-1 flex-col justify-center p-6" aria-label="No result yet">
-      <p className="label">Top match</p>
-      <h2 className="mt-1 font-display text-[34px] leading-tight font-semibold">Ready when you are</h2>
-      <ol className="mt-5 grid gap-4 text-sm text-soft sm:grid-cols-3">
+    <section aria-labelledby="top-empty-title" className="hud @container flex flex-1 flex-col p-4">
+      <PanelTitle id="top-empty-title">Top match</PanelTitle>
+      <div className="flex flex-1 flex-col justify-center py-2">
+        <p className="font-display text-[34px] leading-tight font-semibold">Ready when you are</p>
+        <ol className="mt-4 grid gap-3 text-sm text-soft @md:grid-cols-3">
         {["Point at a region of the body", "Pick what you feel, then set age and duration", "Press Analyze to see ranked conditions and why"].map((t, i) => (
           <li key={t} className="rounded-2xl bg-fill p-3.5">
             <span className="mb-1.5 grid size-6 place-items-center rounded-full bg-[var(--accent-fill)] text-xs font-semibold text-white">{i + 1}</span>
             {t}
           </li>
         ))}
-      </ol>
+        </ol>
+      </div>
     </section>
   );
 }
 
 export function TopPredictionError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <section role="alert" className="hud flex flex-1 flex-col justify-center !border-contra/50 p-6">
+    <section role="alert" className="hud flex flex-1 flex-col justify-center !border-contra/50 p-4">
       <p className="text-[13px] font-semibold text-contra">Prediction failed</p>
       <h2 className="mt-1 font-display text-[34px] leading-tight font-semibold">Couldn’t reach the model</h2>
       <p className="mt-3 max-w-[52ch] text-[15px] text-soft">The prediction service didn’t return a valid answer. Your symptoms and answers are kept, so nothing was lost.</p>

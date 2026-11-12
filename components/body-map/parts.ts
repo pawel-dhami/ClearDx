@@ -32,43 +32,45 @@ export interface Organ {
 const L = (x: number) => x; // body's left is +x
 const R = (x: number) => -x;
 
+// Joint centres measured on the body mesh (see public/models/body.json → landmarks).
 const JOINTS = (side: (x: number) => number): Vec3[] => [
-  [side(0.122), 0.2, 0], // shoulder
-  [side(0.164), 0.371, -0.006], // elbow
-  [side(0.196), 0.48, 0.004], // wrist
-  [side(0.072), 0.49, 0.004], // hip
-  [side(0.062), 0.73, 0.014], // knee
-  [side(0.064), 0.95, -0.006], // ankle
+  [side(0.105), 0.192, -0.013], // shoulder
+  [side(0.17), 0.375, 0.016], // elbow
+  [side(0.166), 0.476, 0.062], // wrist
+  [side(0.052), 0.56, -0.019], // hip
+  [side(0.057), 0.718, -0.034], // knee
+  [side(0.048), 0.946, -0.066], // ankle
 ];
 
 // Serpentine path through the abdomen for the small intestine.
 const GUT: Vec3[] = [];
 for (let row = 0; row < 5; row++) {
-  const y = 0.362 + row * 0.019;
-  const xs = row % 2 ? [0.052, -0.052] : [-0.052, 0.052];
-  GUT.push([xs[0], y, 0.018], [0, y + 0.004, 0.026], [xs[1], y + 0.008, 0.018]);
+  const y = 0.402 + row * 0.021;
+  const xs = row % 2 ? [0.054, -0.054] : [-0.054, 0.054];
+  GUT.push([xs[0], y, 0.026], [0, y + 0.005, 0.036], [xs[1], y + 0.01, 0.026]);
 }
 
+// Positions fitted to the body mesh: model units (height 1), body's left is +x, +z toward the viewer.
 export const ORGANS: Organ[] = [
-  { id: "brain", label: "Brain", show: "always", shape: { kind: "ellipsoid", c: [0, 0.05, -0.008], r: [0.036, 0.03, 0.044] } },
-  { id: "eyeL", label: "Left eye", show: "always", shape: { kind: "ellipsoid", c: [L(0.016), 0.075, 0.042], r: [0.008, 0.0055, 0.006] } },
-  { id: "eyeR", label: "Right eye", show: "always", shape: { kind: "ellipsoid", c: [R(0.016), 0.075, 0.042], r: [0.008, 0.0055, 0.006] } },
-  { id: "sinus", label: "Nose & sinuses", show: "lit", shape: { kind: "ellipsoid", c: [0, 0.082, 0.04], r: [0.016, 0.017, 0.012] } },
-  { id: "earL", label: "Left ear", show: "lit", shape: { kind: "ellipsoid", c: [L(0.042), 0.077, -0.004], r: [0.008, 0.012, 0.009] } },
-  { id: "earR", label: "Right ear", show: "lit", shape: { kind: "ellipsoid", c: [R(0.042), 0.077, -0.004], r: [0.008, 0.012, 0.009] } },
-  { id: "throat", label: "Throat & windpipe", show: "always", shape: { kind: "tube", path: [[0, 0.1, 0.012], [0, 0.14, 0.014], [0, 0.18, 0.012], [0, 0.205, 0.006]], radius: 0.0075 } },
-  { id: "neckNodes", label: "Neck lymph nodes", show: "lit", shape: { kind: "spheres", centers: [[L(0.024), 0.122, 0.012], [R(0.024), 0.122, 0.012], [L(0.028), 0.137, 0.002], [R(0.028), 0.137, 0.002]], radius: 0.0055 } },
-  { id: "lungL", label: "Left lung", show: "always", shape: { kind: "ellipsoid", c: [L(0.045), 0.246, -0.002], r: [0.034, 0.06, 0.04], tilt: -0.08 } },
-  { id: "lungR", label: "Right lung", show: "always", shape: { kind: "ellipsoid", c: [R(0.045), 0.246, -0.002], r: [0.036, 0.06, 0.04], tilt: 0.08 } },
-  { id: "heart", label: "Heart", show: "always", shape: { kind: "ellipsoid", c: [L(0.014), 0.262, 0.024], r: [0.025, 0.029, 0.022], tilt: 0.45 } },
-  { id: "liver", label: "Liver", show: "always", shape: { kind: "ellipsoid", c: [R(0.03), 0.314, 0.014], r: [0.05, 0.025, 0.035], tilt: -0.22 } },
-  { id: "stomach", label: "Stomach", show: "always", shape: { kind: "ellipsoid", c: [L(0.032), 0.322, 0.022], r: [0.03, 0.022, 0.021], tilt: 0.5 } },
+  { id: "brain", label: "Brain", show: "always", shape: { kind: "ellipsoid", c: [0, 0.048, 0.008], r: [0.036, 0.032, 0.046] } },
+  { id: "eyeL", label: "Left eye", show: "always", shape: { kind: "ellipsoid", c: [L(0.017), 0.08, 0.06], r: [0.008, 0.0055, 0.006] } },
+  { id: "eyeR", label: "Right eye", show: "always", shape: { kind: "ellipsoid", c: [R(0.017), 0.08, 0.06], r: [0.008, 0.0055, 0.006] } },
+  { id: "sinus", label: "Nose & sinuses", show: "lit", shape: { kind: "ellipsoid", c: [0, 0.09, 0.06], r: [0.014, 0.016, 0.012] } },
+  { id: "earL", label: "Left ear", show: "lit", shape: { kind: "ellipsoid", c: [L(0.046), 0.082, 0.004], r: [0.007, 0.012, 0.009] } },
+  { id: "earR", label: "Right ear", show: "lit", shape: { kind: "ellipsoid", c: [R(0.046), 0.082, 0.004], r: [0.007, 0.012, 0.009] } },
+  { id: "throat", label: "Throat & windpipe", show: "always", shape: { kind: "tube", path: [[0, 0.112, 0.03], [0, 0.15, 0.03], [0, 0.19, 0.022], [0, 0.228, 0.012]], radius: 0.0075 } },
+  { id: "neckNodes", label: "Neck lymph nodes", show: "lit", shape: { kind: "spheres", centers: [[L(0.026), 0.13, 0.024], [R(0.026), 0.13, 0.024], [L(0.03), 0.147, 0.012], [R(0.03), 0.147, 0.012]], radius: 0.0055 } },
+  { id: "lungL", label: "Left lung", show: "always", shape: { kind: "ellipsoid", c: [L(0.048), 0.272, -0.002], r: [0.037, 0.072, 0.045], tilt: -0.08 } },
+  { id: "lungR", label: "Right lung", show: "always", shape: { kind: "ellipsoid", c: [R(0.048), 0.272, -0.002], r: [0.039, 0.072, 0.045], tilt: 0.08 } },
+  { id: "heart", label: "Heart", show: "always", shape: { kind: "ellipsoid", c: [L(0.014), 0.296, 0.03], r: [0.026, 0.03, 0.022], tilt: 0.45 } },
+  { id: "liver", label: "Liver", show: "always", shape: { kind: "ellipsoid", c: [R(0.03), 0.348, 0.018], r: [0.052, 0.027, 0.036], tilt: -0.22 } },
+  { id: "stomach", label: "Stomach", show: "always", shape: { kind: "ellipsoid", c: [L(0.034), 0.358, 0.028], r: [0.03, 0.023, 0.021], tilt: 0.5 } },
   { id: "intestines", label: "Intestines", show: "always", shape: { kind: "tube", path: GUT, radius: 0.0085 } },
-  { id: "appendix", label: "Appendix (lower right)", show: "lit", shape: { kind: "ellipsoid", c: [R(0.05), 0.438, 0.022], r: [0.008, 0.014, 0.008], tilt: 0.3 } },
-  { id: "kidneyL", label: "Left kidney", show: "always", shape: { kind: "ellipsoid", c: [L(0.042), 0.352, -0.032], r: [0.014, 0.024, 0.013], tilt: -0.2 } },
-  { id: "kidneyR", label: "Right kidney", show: "always", shape: { kind: "ellipsoid", c: [R(0.042), 0.358, -0.032], r: [0.014, 0.024, 0.013], tilt: 0.2 } },
-  { id: "bladder", label: "Bladder", show: "always", shape: { kind: "ellipsoid", c: [0, 0.468, 0.024], r: [0.021, 0.017, 0.017] } },
-  { id: "lowerBack", label: "Lower back", show: "lit", shape: { kind: "ellipsoid", c: [0, 0.415, -0.044], r: [0.05, 0.045, 0.012] } },
+  { id: "appendix", label: "Appendix (lower right)", show: "lit", shape: { kind: "ellipsoid", c: [R(0.05), 0.49, 0.032], r: [0.008, 0.014, 0.008], tilt: 0.3 } },
+  { id: "kidneyL", label: "Left kidney", show: "always", shape: { kind: "ellipsoid", c: [L(0.044), 0.39, -0.036], r: [0.014, 0.025, 0.013], tilt: -0.2 } },
+  { id: "kidneyR", label: "Right kidney", show: "always", shape: { kind: "ellipsoid", c: [R(0.044), 0.396, -0.036], r: [0.014, 0.025, 0.013], tilt: 0.2 } },
+  { id: "bladder", label: "Bladder", show: "always", shape: { kind: "ellipsoid", c: [0, 0.528, 0.03], r: [0.022, 0.018, 0.018] } },
+  { id: "lowerBack", label: "Lower back", show: "lit", shape: { kind: "ellipsoid", c: [0, 0.46, -0.062], r: [0.056, 0.05, 0.012] } },
   { id: "jointsL", label: "Left-side joints", show: "lit", shape: { kind: "spheres", centers: JOINTS(L), radius: 0.013 } },
   { id: "jointsR", label: "Right-side joints", show: "lit", shape: { kind: "spheres", centers: JOINTS(R), radius: 0.013 } },
 ];

@@ -2,22 +2,27 @@
 
 import type { KeyboardEvent } from "react";
 import { REGION_LABELS } from "@/lib/symptoms";
-import { SHAPES, SURFACE_SLOTS, type Shape } from "./bodyModel";
+import { SURFACE_SLOTS, type SurfaceSlot } from "./bodyModel";
+import outline from "./generated/body2d.json";
 import { ORGANS, surfaceLevels, type Organ } from "./parts";
 import { SPATIAL_REGIONS, type FigureProps, type SpatialRegion } from "./types";
 
-// Model x ∈ [-0.35, 0.35], y ∈ [0, 1]  →  viewBox 140 × 200
+// Model x ∈ [-0.35, 0.35], y ∈ [0, 1]  →  viewBox units (same mapping the outline was traced with)
 const X = (x: number) => 70 + x * 200;
 const Y = (y: number) => y * 200;
 
-/** One body primitive as SVG: ellipsoids as ellipses, capsules as round-capped strokes. */
-function Part({ s, fill }: { s: Shape; fill: string }) {
-  return s.t === "e" ? (
-    <ellipse cx={X(s.c[0])} cy={Y(s.c[1])} rx={s.r[0] * 200} ry={s.r[1] * 200} fill={fill} />
-  ) : (
-    <line x1={X(s.a[0])} y1={Y(s.a[1])} x2={X(s.b[0])} y2={Y(s.b[1])} stroke={fill} strokeWidth={(s.ra + s.rb) * 200 * 0.92} strokeLinecap="round" />
-  );
-}
+const SLOT_PATHS = outline.slots as Record<SurfaceSlot, string>;
+const REGION_OF: Record<SurfaceSlot, SpatialRegion> = {
+  head: "head",
+  neck: "throat",
+  chest: "chest",
+  abdomen: "abdomen",
+  pelvis: "pelvis",
+  armL: "limbs",
+  armR: "limbs",
+  legL: "limbs",
+  legR: "limbs",
+};
 
 function OrganShape({ o, fill, opacity }: { o: Organ; fill: string; opacity: number }) {
   const s = o.shape;
@@ -54,18 +59,10 @@ function OrganShape({ o, fill, opacity }: { o: Organ; fill: string; opacity: num
   );
 }
 
-const slotIndex = (s: Shape) => {
-  const x = s.t === "e" ? s.c[0] : (s.a[0] + s.b[0]) / 2;
-  if (s.part === "arm") return SURFACE_SLOTS.indexOf(x > 0 ? "armL" : "armR");
-  if (s.part === "leg") return SURFACE_SLOTS.indexOf(x > 0 ? "legL" : "legR");
-  return SURFACE_SLOTS.indexOf(s.part);
-};
-
 /**
- * Accessible 2D fallback: the same anatomy as the 3D figure, drawn as one soft
- * silhouette (a blur + threshold filter melts the parts together) with the organs
- * inside. Affected parts glow in the contrasting colour; each region is one
- * focusable button (Enter/Space to open its symptoms).
+ * Accessible 2D fallback: the front outline of the same body mesh, split into
+ * regions, with the organs inside. Affected areas glow in the contrasting colour;
+ * each region is one focusable button (Enter/Space to open its symptoms).
  */
 export default function BodyMap2D({ active, hovered, onSelect, onHover, glow = {} }: FigureProps) {
   const onKey = (e: KeyboardEvent, r: SpatialRegion) => {
@@ -77,30 +74,14 @@ export default function BodyMap2D({ active, hovered, onSelect, onHover, glow = {
   const surface = surfaceLevels(glow);
 
   return (
-    <svg viewBox="22 -2 96 204" className="h-full w-full" role="group" aria-label="Body map, 2D">
-      <defs>
-        <filter id="body-soften" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="1.2" />
-          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" />
-        </filter>
-      </defs>
-
-      {/* silhouette */}
-      <g filter="url(#body-soften)">
-        {SHAPES.map((s, i) => (
-          <Part key={i} s={s} fill="var(--body-fill)" />
-        ))}
-      </g>
-
-      {/* affected surface areas */}
-      {SHAPES.map((s, i) => {
-        const level = surface[slotIndex(s)];
-        return level > 0 ? (
-          <g key={i} filter="url(#body-soften)" opacity={level * 0.6}>
-            <Part s={s} fill="var(--complement)" />
-          </g>
-        ) : null;
-      })}
+    <svg viewBox="20 -2 100 204" className="h-full w-full" role="group" aria-label="Body map, 2D">
+      {/* silhouette + affected areas */}
+      {SURFACE_SLOTS.map((slot, i) => (
+        <g key={slot}>
+          <path d={SLOT_PATHS[slot]} fill="var(--body-fill)" fillRule="evenodd" stroke="var(--body-fill)" strokeWidth="0.6" strokeLinejoin="round" />
+          {surface[i] > 0 && <path d={SLOT_PATHS[slot]} fill="var(--complement)" fillRule="evenodd" opacity={surface[i] * 0.55} />}
+        </g>
+      ))}
 
       {/* organs */}
       {ORGANS.map((o) => {
@@ -112,7 +93,7 @@ export default function BodyMap2D({ active, hovered, onSelect, onHover, glow = {
       {/* region highlights + hit areas */}
       {SPATIAL_REGIONS.map((r) => {
         const lit = hovered === r || active === r;
-        const shapes = SHAPES.filter((s) => s.region === r);
+        const slots = SURFACE_SLOTS.filter((s) => REGION_OF[s] === r);
         return (
           <g
             key={r}
@@ -128,16 +109,17 @@ export default function BodyMap2D({ active, hovered, onSelect, onHover, glow = {
             onBlur={() => onHover(null)}
             className="cursor-pointer outline-none"
           >
-            <g filter="url(#body-soften)" style={{ opacity: lit ? 0.35 : 0, transition: "opacity .2s" }}>
-              {shapes.map((s, i) => (
-                <Part key={i} s={s} fill="var(--accent)" />
-              ))}
-            </g>
-            <g opacity="0">
-              {shapes.map((s, i) => (
-                <Part key={i} s={s} fill="#000" />
-              ))}
-            </g>
+            {slots.map((s) => (
+              <path
+                key={s}
+                d={SLOT_PATHS[s]}
+                fillRule="evenodd"
+                fill="var(--accent)"
+                stroke={lit ? "var(--accent)" : "none"}
+                strokeWidth="0.8"
+                style={{ fillOpacity: lit ? 0.3 : 0, transition: "fill-opacity .2s" }}
+              />
+            ))}
           </g>
         );
       })}

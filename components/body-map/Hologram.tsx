@@ -2,20 +2,17 @@
 
 import { ContactShadows } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Component, Suspense, use, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
-import { MarchingCubes } from "three/examples/jsm/objects/MarchingCubes.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Region } from "@/lib/symptoms";
 import { readAccentRGB, readComplementRGB, useThemeState } from "@/lib/theme";
-import { bodyDistance, REGION_INDEX, surfaceInfo, type Vec3 } from "./bodyModel";
+import { REGION_INDEX, type Vec3 } from "./bodyModel";
+import { loadBodyMesh, type BodyMesh } from "./bodyMesh";
 import { ORGANS, surfaceLevels, type Organ, type PartGlow } from "./parts";
 import type { FigureProps } from "./types";
 
 const SCALE = 2.2; // model units → world units (the body is 2.2 tall)
-const RES = 112; // voxels per side of the sampling grid
-// The grid is stretched to the body: tall in y, narrow in x and z, so detail goes where the body is.
-const SPAN: Vec3 = [0.26, 0.52, 0.26];
 
 const toWorld = ([x, y, z]: Vec3): THREE.Vector3 => new THREE.Vector3(x * SCALE, (0.5 - y) * SCALE, z * SCALE);
 
@@ -32,74 +29,46 @@ const REGION_SLOTS: Record<Region, number[]> = {
   general: ALL,
 };
 
-// ---------- geometry (built once, cached) ----------
+// ---------- geometry (built once from the loaded mesh, cached) ----------
 
-let cachedBody: { geometry: THREE.BufferGeometry; regions: Uint8Array } | null = null;
+interface BodyGeometry {
+  surface: THREE.BufferGeometry;
+  wire: THREE.BufferGeometry;
+  regions: Uint8Array;
+}
+let cachedGeometry: { mesh: BodyMesh; geo: BodyGeometry } | null = null;
 
-/**
- * The body as one smooth surface: samples the blended distance field of the
- * anatomical primitives and extracts its iso-surface (marching cubes). Each
- * vertex stores its exact normal, its soft weights per surface slot and its region.
- */
-function bodyGeometry() {
-  if (cachedBody) return cachedBody;
-  const mc = new MarchingCubes(RES, new THREE.MeshBasicMaterial(), false, false, 400_000);
-  const half = RES / 2;
-  const field = mc.field;
-  for (let k = 0; k < RES; k++) {
-    const z = ((k - half) / half) * SPAN[2];
-    for (let j = 0; j < RES; j++) {
-      const y = 0.5 - ((j - half) / half) * SPAN[1];
-      for (let i = 0; i < RES; i++) {
-        const x = ((i - half) / half) * SPAN[0];
-        field[k * RES * RES + j * RES + i] = -bodyDistance(x, y, z) / 0.05;
-      }
-    }
+/** The scanned body: a smooth surface plus its quad edges (the wireframe), sharing vertex data. */
+function bodyGeometry(mesh: BodyMesh): BodyGeometry {
+  if (cachedGeometry?.mesh === mesh) return cachedGeometry.geo;
+  const n = mesh.positions.length / 3;
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const w = toWorld([mesh.positions[i * 3], mesh.positions[i * 3 + 1], mesh.positions[i * 3 + 2]]);
+    pos[i * 3] = w.x;
+    pos[i * 3 + 1] = w.y;
+    pos[i * 3 + 2] = w.z;
   }
-  mc.isolation = 0;
-  mc.update();
+  const weights = [0, 1, 2].map((k) => {
+    const a = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) a[i * 3 + j] = mesh.weights[i * 9 + k * 3 + j] / 255;
+    return new THREE.BufferAttribute(a, 3);
+  });
+  const surface = new THREE.BufferGeometry();
+  surface.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  surface.setIndex(new THREE.BufferAttribute(mesh.triangles, 1));
+  surface.computeVertexNormals();
+  weights.forEach((w, k) => surface.setAttribute(`aW${k}`, w));
+  surface.computeBoundingSphere();
 
-  const n = mc.count;
-  const src = mc.positionArray;
-  const positions = new Float32Array(n * 3);
-  const normals = new Float32Array(n * 3);
-  const w0 = new Float32Array(n * 3);
-  const w1 = new Float32Array(n * 3);
-  const w2 = new Float32Array(n * 3);
-  const regions = new Uint8Array(n);
-  const h = 0.0015;
-  for (let v = 0; v < n; v++) {
-    const x = src[v * 3] * SPAN[0];
-    const y = 0.5 - src[v * 3 + 1] * SPAN[1];
-    const z = src[v * 3 + 2] * SPAN[2];
-    positions[v * 3] = x * SCALE;
-    positions[v * 3 + 1] = (0.5 - y) * SCALE;
-    positions[v * 3 + 2] = z * SCALE;
-    // exact normals from the distance field's gradient (model y points down)
-    const nx = bodyDistance(x + h, y, z) - bodyDistance(x - h, y, z);
-    const ny = bodyDistance(x, y - h, z) - bodyDistance(x, y + h, z);
-    const nz = bodyDistance(x, y, z + h) - bodyDistance(x, y, z - h);
-    const len = Math.hypot(nx, ny, nz) || 1;
-    normals[v * 3] = nx / len;
-    normals[v * 3 + 1] = ny / len;
-    normals[v * 3 + 2] = nz / len;
-    const info = surfaceInfo(x, y, z);
-    regions[v] = info.region;
-    w0.set(info.weights.slice(0, 3), v * 3);
-    w1.set(info.weights.slice(3, 6), v * 3);
-    w2.set(info.weights.slice(6, 9), v * 3);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  g.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-  g.setAttribute("aW0", new THREE.BufferAttribute(w0, 3));
-  g.setAttribute("aW1", new THREE.BufferAttribute(w1, 3));
-  g.setAttribute("aW2", new THREE.BufferAttribute(w2, 3));
-  g.computeBoundingSphere();
-  mc.geometry.dispose();
-  (mc.material as THREE.Material).dispose();
-  cachedBody = { geometry: g, regions };
-  return cachedBody;
+  const wire = new THREE.BufferGeometry();
+  for (const name of ["position", "normal", "aW0", "aW1", "aW2"]) wire.setAttribute(name, surface.getAttribute(name));
+  wire.setIndex(new THREE.BufferAttribute(mesh.edges, 1));
+  wire.boundingSphere = surface.boundingSphere;
+
+  const geo = { surface, wire, regions: mesh.regions };
+  cachedGeometry = { mesh, geo };
+  return geo;
 }
 
 function organGeometry(o: Organ): THREE.BufferGeometry {
@@ -128,9 +97,8 @@ function organGeometry(o: Organ): THREE.BufferGeometry {
 let cachedOrgans: { organ: Organ; geometry: THREE.BufferGeometry }[] | null = null;
 const organGeometries = () => (cachedOrgans ??= ORGANS.map((organ) => ({ organ, geometry: organGeometry(organ) })));
 
-/** Resting anatomical tints for the light theme (the dark theme uses the accent, hologram-style). */
+/** Resting anatomical tints for the light theme: soft and desaturated so affected organs stand out. */
 const ORGAN_TINT: Partial<Record<Organ["id"], string>> = {
-  // Soft, desaturated anatomy so affected organs (in the saturated contrasting colour) stand out.
   brain: "#ddd3d3",
   eyeL: "#eef1f5",
   eyeR: "#eef1f5",
@@ -148,7 +116,7 @@ const ORGAN_TINT: Partial<Record<Organ["id"], string>> = {
 
 // ---------- shaders ----------
 
-const BODY_VERT = /* glsl */ `
+const SURFACE_VERT = /* glsl */ `
 attribute vec3 aW0;
 attribute vec3 aW1;
 attribute vec3 aW2;
@@ -156,73 +124,99 @@ uniform vec3 uG0; uniform vec3 uG1; uniform vec3 uG2;
 uniform vec3 uS0; uniform vec3 uS1; uniform vec3 uS2;
 varying float vGlow;
 varying float vSel;
-varying vec3 vPos;
-varying vec3 vN;
+varying float vY;
 varying vec3 vViewN;
 varying vec3 vViewPos;
 void main() {
   vGlow = dot(aW0, uG0) + dot(aW1, uG1) + dot(aW2, uG2);
   vSel = dot(aW0, uS0) + dot(aW1, uS1) + dot(aW2, uS2);
-  vPos = position;
-  vN = normal;
+  vY = position.y;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vViewPos = -mv.xyz;
   vViewN = normalMatrix * normal;
   gl_Position = projectionMatrix * mv;
 }`;
 
-const BODY_FRAG = /* glsl */ `
+const SURFACE_FRAG = /* glsl */ `
 uniform vec3 uAccent;
 uniform vec3 uComp;
 uniform float uLight;
-uniform float uGrid;
 uniform float uScan;
 uniform float uScanY;
 varying float vGlow;
 varying float vSel;
-varying vec3 vPos;
-varying vec3 vN;
+varying float vY;
 varying vec3 vViewN;
 varying vec3 vViewPos;
 void main() {
-  vec3 n = normalize(vN);
   vec3 vn = normalize(vViewN);
   if (!gl_FrontFacing) vn = -vn;
-  vec3 vd = normalize(vViewPos);
-  float fres = pow(1.0 - clamp(abs(dot(vn, vd)), 0.0, 1.0), 2.2);
+  float fres = pow(1.0 - clamp(abs(dot(vn, normalize(vViewPos))), 0.0, 1.0), 2.2);
   float diff = clamp(dot(vn, normalize(vec3(0.35, 0.55, 0.75))), 0.0, 1.0);
-
-  // Wireframe-style grid: horizontal rings plus lines running along the surface.
-  vec3 p = vPos / uGrid;
-  vec3 w = max(fwidth(p), vec3(1e-4));
-  vec3 a = abs(fract(p - 0.5) - 0.5) / w;
-  vec3 l = 1.0 - clamp(a - 0.25, 0.0, 1.0);
-  float grid = max(l.y * (1.0 - abs(n.y)), max(l.x * (1.0 - abs(n.x)), l.z * (1.0 - abs(n.z))));
-  grid *= 1.0 - smoothstep(0.45, 0.9, max(w.x, max(w.y, w.z)));
-
   float glow = clamp(vGlow, 0.0, 1.0);
   float sel = clamp(vSel, 0.0, 1.0);
-  float band = uScan * smoothstep(0.07, 0.0, abs(vPos.y - uScanY));
+  float band = uScan * smoothstep(0.07, 0.0, abs(vY - uScanY));
   vec3 col;
   float alpha;
   if (uLight < 0.5) {
-    vec3 line = mix(uAccent, uComp, glow);
-    col = uAccent * (0.035 + 0.07 * diff)
-        + line * grid * (0.5 + 0.7 * glow)
-        + uAccent * fres * 0.42
-        + uComp * glow * (0.14 + 0.35 * fres)
-        + uAccent * sel * 0.22
-        + uAccent * band * 0.8;
-    if (!gl_FrontFacing) col *= 0.45;
+    col = uAccent * (0.03 + 0.06 * diff + 0.38 * fres)
+        + uComp * glow * (0.16 + 0.4 * fres)
+        + uAccent * sel * 0.18
+        + uAccent * band * 0.7;
+    if (!gl_FrontFacing) col *= 0.4;
     alpha = 1.0;
   } else {
-    vec3 base = vec3(0.965, 0.972, 0.985) * (0.84 + 0.16 * diff);
-    col = mix(base, uAccent, grid * 0.38 + fres * 0.22);
-    col = mix(col, uComp, glow * (0.42 + 0.4 * grid));
-    col = mix(col, uAccent, sel * 0.28 + band * 0.6);
-    alpha = 0.42 + fres * 0.3 + grid * 0.22 + glow * 0.2 + sel * 0.12;
+    vec3 base = vec3(0.965, 0.972, 0.985) * (0.8 + 0.2 * diff);
+    col = mix(base, uAccent, fres * 0.22);
+    col = mix(col, uComp, glow * 0.5);
+    col = mix(col, uAccent, sel * 0.25 + band * 0.55);
+    alpha = 0.4 + fres * 0.32 + glow * 0.22 + sel * 0.1;
   }
   gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
+}`;
+
+const WIRE_VERT = /* glsl */ `
+attribute vec3 aW0;
+attribute vec3 aW1;
+attribute vec3 aW2;
+uniform vec3 uG0; uniform vec3 uG1; uniform vec3 uG2;
+uniform vec3 uS0; uniform vec3 uS1; uniform vec3 uS2;
+varying float vGlow;
+varying float vSel;
+varying float vFacing;
+varying float vY;
+void main() {
+  vGlow = dot(aW0, uG0) + dot(aW1, uG1) + dot(aW2, uG2);
+  vSel = dot(aW0, uS0) + dot(aW1, uS1) + dot(aW2, uS2);
+  vY = position.y;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vFacing = dot(normalize(normalMatrix * normal), normalize(-mv.xyz));
+  gl_Position = projectionMatrix * mv;
+}`;
+
+const WIRE_FRAG = /* glsl */ `
+uniform vec3 uAccent;
+uniform vec3 uComp;
+uniform float uLight;
+uniform float uScan;
+uniform float uScanY;
+varying float vGlow;
+varying float vSel;
+varying float vFacing;
+varying float vY;
+void main() {
+  float glow = clamp(vGlow, 0.0, 1.0);
+  float sel = clamp(vSel, 0.0, 1.0);
+  float front = smoothstep(-0.15, 0.35, vFacing);
+  float band = uScan * smoothstep(0.07, 0.0, abs(vY - uScanY));
+  vec3 line = mix(uAccent, uComp, glow);
+  if (uLight < 0.5) {
+    float k = (0.22 + 0.5 * front) * (1.0 + 0.9 * glow + 0.5 * sel) + band;
+    gl_FragColor = vec4(line * k, 1.0);
+  } else {
+    float a = (0.16 + 0.2 * front) + glow * 0.5 + sel * 0.2 + band * 0.5;
+    gl_FragColor = vec4(line, clamp(a, 0.0, 1.0) * front);
+  }
 }`;
 
 const ORGAN_VERT = /* glsl */ `
@@ -267,11 +261,10 @@ function createScene() {
   const accent = new THREE.Color(0.25, 0.5, 1);
   const comp = new THREE.Color(1, 0.3, 0.3);
   const light = { value: 0 };
-  const bodyUniforms = {
+  const shared = {
     uAccent: { value: accent },
     uComp: { value: comp },
     uLight: light,
-    uGrid: { value: 0.034 },
     uScan: { value: 0 },
     uScanY: { value: 0 },
     uG0: { value: new THREE.Vector3() },
@@ -281,15 +274,19 @@ function createScene() {
     uS1: { value: new THREE.Vector3() },
     uS2: { value: new THREE.Vector3() },
   };
-  const body = new THREE.ShaderMaterial({
-    uniforms: bodyUniforms,
-    vertexShader: BODY_VERT,
-    fragmentShader: BODY_FRAG,
+  const surface = new THREE.ShaderMaterial({
+    uniforms: shared,
+    vertexShader: SURFACE_VERT,
+    fragmentShader: SURFACE_FRAG,
     transparent: true,
     depthWrite: false,
+    polygonOffset: true, // keep the wireframe drawn on top of the surface it sits on
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
   });
-  const glowVecs = [bodyUniforms.uG0.value, bodyUniforms.uG1.value, bodyUniforms.uG2.value];
-  const selVecs = [bodyUniforms.uS0.value, bodyUniforms.uS1.value, bodyUniforms.uS2.value];
+  const wire = new THREE.ShaderMaterial({ uniforms: shared, vertexShader: WIRE_VERT, fragmentShader: WIRE_FRAG, transparent: true, depthWrite: false });
+  const glowVecs = [shared.uG0.value, shared.uG1.value, shared.uG2.value];
+  const selVecs = [shared.uS0.value, shared.uS1.value, shared.uS2.value];
 
   const organs = organGeometries().map(({ organ }) => {
     const uniforms = {
@@ -304,19 +301,24 @@ function createScene() {
   });
 
   return {
-    body,
+    surface,
+    wire,
     organs,
-    /** Restyle for the theme: hologram (additive glow) in dark, translucent anatomy in light. */
+    /** Dark: glowing wireframe hologram (additive). Light: frosted translucent anatomy with fine lines. */
     setTheme(isLight: boolean, accentRGB: [number, number, number], compRGB: [number, number, number]) {
       light.value = isLight ? 1 : 0;
       accent.setRGB(...accentRGB, THREE.SRGBColorSpace);
       comp.setRGB(...compRGB, THREE.SRGBColorSpace);
-      body.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
-      body.side = isLight ? THREE.FrontSide : THREE.DoubleSide;
-      body.needsUpdate = true;
+      const blend = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+      surface.blending = blend;
+      surface.side = isLight ? THREE.FrontSide : THREE.DoubleSide;
+      surface.depthWrite = isLight; // in light mode the surface hides the far side's lines
+      wire.blending = blend;
+      surface.needsUpdate = true;
+      wire.needsUpdate = true;
       for (const o of organs) {
         o.uniforms.uColor.value.set(isLight ? (ORGAN_TINT[o.organ.id] ?? "#e5a0a0") : accent);
-        o.material.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+        o.material.blending = blend;
         o.material.depthWrite = isLight;
         o.material.needsUpdate = true;
       }
@@ -331,11 +333,12 @@ function createScene() {
       organs[i].uniforms.uLevel.value = level;
     },
     setScan(on: boolean, y: number) {
-      bodyUniforms.uScan.value = on ? 1 : 0;
-      bodyUniforms.uScanY.value = y;
+      shared.uScan.value = on ? 1 : 0;
+      shared.uScanY.value = y;
     },
     dispose() {
-      body.dispose();
+      surface.dispose();
+      wire.dispose();
       for (const o of organs) o.material.dispose();
     },
   };
@@ -347,7 +350,7 @@ const ease = (cur: number, goal: number, dt: number, rate = 8) => cur + (goal - 
 
 function Body({ active, hovered, scanning, onHover, onSelect, reduced, glow, variant = "app" }: FigureProps) {
   const hero = variant === "hero";
-  const { geometry, regions } = bodyGeometry();
+  const { surface, wire, regions } = bodyGeometry(use(loadBodyMesh()));
   const organGeos = organGeometries();
   const scene = useMemo(() => createScene(), []);
   useEffect(() => () => scene.dispose(), [scene]);
@@ -416,8 +419,8 @@ function Body({ active, hovered, scanning, onHover, onSelect, reduced, glow, var
         <mesh key={organ.id} geometry={og} material={scene.organs[i].material} renderOrder={1} raycast={() => null} />
       ))}
       <mesh
-        geometry={geometry}
-        material={scene.body}
+        geometry={surface}
+        material={scene.surface}
         renderOrder={2}
         onPointerMove={(e) => {
           e.stopPropagation();
@@ -431,8 +434,20 @@ function Body({ active, hovered, scanning, onHover, onSelect, reduced, glow, var
           if (r) onSelect(r);
         }}
       />
+      <lineSegments geometry={wire} material={scene.wire} renderOrder={3} raycast={() => null} />
     </group>
   );
+}
+
+/** If the body model can't load, render nothing (the stage's own fallback still offers the 2D map). */
+class LoadBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 export default function Hologram(props: FigureProps) {
@@ -444,7 +459,7 @@ export default function Hologram(props: FigureProps) {
       : "3D anatomical body map. Affected organs and areas glow. Use the body region buttons to choose symptoms with a keyboard.";
   return (
     <Canvas
-      camera={{ position: [0, 0, 4.2], fov: 32 }}
+      camera={{ position: [0, 0, 4.6], fov: 32 }}
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       role="img"
@@ -452,7 +467,11 @@ export default function Hologram(props: FigureProps) {
       style={{ touchAction: "pan-y" }}
       frameloop={props.reduced ? "demand" : "always"}
     >
-      <Body {...props} />
+      <LoadBoundary>
+        <Suspense fallback={null}>
+          <Body {...props} />
+        </Suspense>
+      </LoadBoundary>
       {light && <ContactShadows position={[0, -1.12, 0]} scale={2.4} blur={2.4} far={1.2} opacity={0.22} resolution={256} />}
     </Canvas>
   );

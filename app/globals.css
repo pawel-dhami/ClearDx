@@ -247,7 +247,7 @@ body::before {
   font-weight: 500;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  transition: background 0.16s var(--ease-out-hud), box-shadow 0.16s var(--ease-out-hud), border-color 0.16s, color 0.16s, transform 0.12s;
+  transition: background 0.16s var(--ease-out-hud), box-shadow 0.16s var(--ease-out-hud), border-color 0.16s, color 0.16s, transform 0.12s, translate 0.3s var(--ease-out-hud);
   cursor: pointer;
   &:active:not(:disabled) { transform: scale(0.98); }
 }
@@ -289,16 +289,110 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
 }
 
+/* ---------- Pointer effects (driven by components/site/Interactions.tsx) ---------- */
+/* Cards: a spotlight behind the content and a border that lights up near the cursor. */
+.hud,
+.hud-strong,
+[data-reveal] {
+  isolation: isolate;
+}
+:is(.hud, .hud-strong, [data-reveal])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out-hud);
+  background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--accent) 15%, transparent), transparent 62%);
+}
+:is(.hud, .hud-strong, [data-reveal])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out-hud);
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--accent), transparent 72%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+:is(.hud, .hud-strong, [data-reveal])[data-lit]::before {
+  opacity: 1;
+}
+:is(.hud, .hud-strong, [data-reveal])[data-lit]::after {
+  opacity: 1;
+}
+
+/* Buttons: a ripple from the press point and a slight magnetic pull (primary). */
+.btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  translate: var(--tx, 0) var(--ty, 0);
+}
+.btn::after {
+  content: "";
+  position: absolute;
+  left: var(--rx, 50%);
+  top: var(--ry, 50%);
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+.btn[data-ripple]::after {
+  animation: ripple 0.6s ease-out both;
+}
+@keyframes ripple {
+  from { transform: scale(0); opacity: 0.28; }
+  to { transform: scale(26); opacity: 0; }
+}
+
+/* Pointer highlight: morphs onto the hovered control (components/site/Interactions.tsx). */
+.pointer-highlight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0;
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 38%, transparent),
+    0 6px 22px -8px color-mix(in oklab, var(--accent) 45%, transparent);
+  will-change: transform, width, height;
+  transition: scale 0.18s var(--ease-out-hud);
+}
+.pointer-highlight.is-pressed {
+  scale: 0.96;
+}
+@media (hover: none) {
+  .pointer-highlight {
+    display: none;
+  }
+}
+
 /* Slim, quiet scrollbars inside panels */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 10px;
+/* In the base layer so a control can override it with a utility (e.g. a field whose wrapper shows the ring). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

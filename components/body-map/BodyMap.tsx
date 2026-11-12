@@ -109,7 +109,7 @@ export function BodyStage({
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-[22px] border border-line bg-[var(--panel-quiet)] ${className}`}>
+    <div data-reveal className={`relative overflow-hidden rounded-[22px] border border-line bg-[var(--panel-quiet)] ${className}`}>
 
       <div className="absolute inset-0">
         {mode === "3d" ? (
@@ -137,7 +137,7 @@ export function BodyStage({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={springs.snappy}
-            className="rounded-full border border-line bg-[var(--panel-strong)] px-3 py-1 text-xs font-medium shadow-sm backdrop-blur"
+            className="flex h-8 items-center rounded-full border border-line bg-[var(--panel-strong)] px-3 text-xs font-medium shadow-sm backdrop-blur"
           >
             {scanning ? (
               <span className="text-cyan">Analysing…</span>
@@ -149,14 +149,14 @@ export function BodyStage({
           </motion.span>
         </AnimatePresence>
         {webgl && (
-          <div role="radiogroup" aria-label="Body map view" className="pointer-events-auto flex rounded-full border border-line bg-[var(--panel-strong)] p-0.5 shadow-sm backdrop-blur">
+          <div role="radiogroup" aria-label="Body map view" className="pointer-events-auto flex h-8 items-center rounded-full border border-line bg-[var(--panel-strong)] p-0.5 shadow-sm backdrop-blur">
             {(["3d", "2d"] as const).map((m) => (
               <button
                 key={m}
                 role="radio"
                 aria-checked={mode === m}
                 onClick={() => setUserMode(m)}
-                className={`min-h-7 rounded-full px-3 text-xs font-medium transition-colors ${mode === m ? "bg-[var(--accent-fill)] text-white" : "text-muted hover:text-text"}`}
+                className={`h-[26px] rounded-full px-3 text-xs font-medium transition-colors ${mode === m ? "bg-[var(--accent-fill)] text-white" : "text-muted hover:text-text"}`}
               >
                 {m.toUpperCase()}
               </button>

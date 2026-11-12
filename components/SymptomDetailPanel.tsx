@@ -117,7 +117,7 @@ export function SymptomDetailPanel({
           value={detail.note ?? ""}
           onChange={(e) => set("note", e.target.value || undefined)}
           placeholder="e.g. worse at night, after meals"
-          className="h-8 min-w-0 flex-1 rounded-lg bg-fill px-2.5 text-[13px] text-text placeholder:text-faint focus:outline-2 focus:outline-[var(--accent)]"
+          className="h-8 min-w-0 flex-1 rounded-full bg-fill px-3 text-[13px] text-text outline-none placeholder:text-muted focus-visible:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />
       </div>
       {affects.length > 0 && (

@@ -20,6 +20,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { FollowUpCards, type AnswerFeedback, type AnswerValue } from "@/components/FollowUpCards";
 import { ReasoningTimeline } from "@/components/ReasoningTimeline";
 import { SymptomChips } from "@/components/SymptomChips";
+import { SymptomSearch } from "@/components/SymptomSearch";
 import { PanelTitle } from "@/components/site/Hud";
 import { Nav } from "@/components/site/Nav";
 import { compare, highlightedSymptoms, noEffectSymptoms, pct, referencesIn, sortByConfidence, type Highlight } from "@/lib/explain";
@@ -140,6 +141,8 @@ export default function PredictorApp() {
       return n;
     });
   };
+  const addSymptom = (label: string) => setSymptoms((s) => (s.some((x) => x.toLowerCase() === label.toLowerCase()) ? s : [...s, label]));
+  const severeCount = symptoms.filter((s) => details[s]?.severity === "severe").length;
   const toggleExcluded = (label: string) => {
     setPendingAnswer(null);
     setExcluded((e) => {
@@ -279,19 +282,22 @@ export default function PredictorApp() {
         </AboutStrip>
       </div>
 
-      <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 lg:grid lg:grid-cols-[320px_360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_276px] lg:px-6">
+      <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 lg:grid lg:grid-cols-[280px_300px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_276px] xl:grid-cols-[320px_360px_minmax(0,1fr)] lg:px-6">
         {/* ---------- Symptoms ---------- */}
         <section aria-labelledby="sym-title" className="hud flex min-h-0 flex-col gap-3 p-4 lg:col-start-1 lg:row-start-1">
           <div className="flex items-center justify-between">
             <PanelTitle id="sym-title">
-              Symptoms{symptoms.length ? <span className="text-text"> · {symptoms.length}</span> : null}
+              Symptoms
+              {symptoms.length > 0 && <span className="font-mono text-[13px] font-medium text-muted">{symptoms.length}</span>}
+              {severeCount > 0 && <span className="rounded-full bg-contra/12 px-2 py-0.5 text-[11px] font-semibold text-contra">{severeCount} severe</span>}
             </PanelTitle>
             {symptoms.length > 0 && (
-              <button type="button" onClick={() => (setSymptoms([]), setExcluded(new Set()))} className="rounded-full px-2.5 py-1 text-[13px] text-muted hover:bg-fill hover:text-contra">
+              <button type="button" onClick={() => (setSymptoms([]), setExcluded(new Set()))} className="h-7 rounded-full px-3 text-[13px] font-medium text-muted transition-colors hover:bg-fill hover:text-contra">
                 Clear all
               </button>
             )}
           </div>
+          <SymptomSearch selected={symptoms} onAdd={addSymptom} />
           <RegionButtons counts={counts} active={activeRegion} highlighted={hoverRegion ?? regionFromHighlight} onSelect={(reg) => selectRegion(activeRegion === reg ? null : reg)} onHover={onHoverRegion} />
           <div className="min-h-0 flex-1 overflow-auto">
             <SymptomChips
@@ -306,6 +312,7 @@ export default function PredictorApp() {
               onHover={(s) => step === null && setHighlight(s ? { kind: "symptom", id: s } : null)}
               details={details}
               onDetail={(label, d) => setDetails((all) => ({ ...all, [label]: d }))}
+              onAdd={addSymptom}
             />
           </div>
           <p className="text-[13px] text-soft">
@@ -380,7 +387,7 @@ export default function PredictorApp() {
         </div>
 
         {/* ---------- Follow-ups ---------- */}
-        <section aria-labelledby="fu-title" className="hud flex min-h-0 flex-col gap-2 p-4 lg:col-start-1 lg:row-start-2">
+        <section aria-labelledby="fu-title" className="hud flex min-h-0 flex-col gap-3 p-4 lg:col-start-1 lg:row-start-2">
           <PanelTitle id="fu-title">Refine</PanelTitle>
           {r && !error ? (
             <FollowUpCards questions={r.follow_up_questions} answers={answers} disabled={loading} onAnswer={answer} onUndo={undo} feedback={feedback} />
@@ -400,9 +407,9 @@ export default function PredictorApp() {
         </section>
 
         {/* ---------- Why: graph + reasoning ---------- */}
-        <div className="flex min-h-0 flex-col gap-3 lg:col-start-3 lg:row-start-2 lg:grid lg:grid-cols-[minmax(0,1fr)_230px]">
-          <section aria-labelledby="graph-title" className="hud flex min-h-0 flex-col overflow-y-auto p-4">
-            <div className="mb-1 flex items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-col gap-3 lg:col-start-3 lg:row-start-2 xl:grid xl:grid-cols-[minmax(0,1fr)_230px]">
+          <section aria-labelledby="graph-title" className="hud flex min-h-0 flex-col gap-3 overflow-y-auto p-4 lg:flex-1 xl:flex-none">
+            <div className="flex items-center justify-between gap-3">
               <PanelTitle id="graph-title">Why</PanelTitle>
               <GraphLegend />
             </div>
@@ -420,8 +427,8 @@ export default function PredictorApp() {
               </div>
             )}
           </section>
-          <section aria-labelledby="rs-title" className="hud flex min-h-0 flex-col p-4">
-            <PanelTitle id="rs-title" className="mb-2">
+          <section aria-labelledby="rs-title" className="hud flex min-h-0 flex-col gap-3 p-4 lg:flex-1 xl:flex-none">
+            <PanelTitle id="rs-title">
               Reasoning
             </PanelTitle>
             {r && !error ? (

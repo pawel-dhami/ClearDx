@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { MotionConfig } from "motion/react";
+import { Interactions } from "@/components/site/Interactions";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-screen font-sans antialiased">
         {/* "user" honours the OS reduced-motion setting for every motion component */}
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
+        <Interactions />
       </body>
     </html>
   );

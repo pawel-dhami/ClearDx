@@ -1,7 +1,38 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { DEFAULT_HUE, setHue, setTheme, useThemeState } from "@/lib/theme";
+
+const MORPH = { type: "spring", stiffness: 260, damping: 22 } as const;
+
+/**
+ * One icon that morphs between a sun and a crescent moon: the disc grows, a
+ * masking circle slides in to carve the crescent, and the rays spin and retract.
+ */
+function SunMoon({ moon }: { moon: boolean }) {
+  const mask = useId();
+  return (
+    <motion.svg width="18" height="18" viewBox="0 0 24 24" aria-hidden initial={false} animate={{ rotate: moon ? -30 : 0 }} transition={MORPH}>
+      <mask id={mask}>
+        <rect width="24" height="24" fill="#fff" />
+        <motion.circle r="7.5" fill="#000" initial={false} animate={moon ? { cx: 16.5, cy: 7.5 } : { cx: 30, cy: -6 }} transition={MORPH} />
+      </mask>
+      <motion.circle cx="12" cy="12" fill="currentColor" mask={`url(#${mask})`} initial={false} animate={{ r: moon ? 8.5 : 4.5 }} transition={MORPH} />
+      <motion.g
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        style={{ originX: "12px", originY: "12px" }}
+        initial={false}
+        animate={moon ? { scale: 0.3, rotate: -90, opacity: 0 } : { scale: 1, rotate: 0, opacity: 1 }}
+        transition={MORPH}
+      >
+        <path d="M12 1.8v2.4M12 19.8v2.4M4.8 4.8l1.7 1.7M17.5 17.5l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.8 19.2l1.7-1.7M17.5 6.5l1.7-1.7" />
+      </motion.g>
+    </motion.svg>
+  );
+}
 
 /** Theme toggle (dark/light) + accent colour slider, saved per browser. */
 export function DisplayControls() {
@@ -33,16 +64,8 @@ export function DisplayControls() {
         title={light ? "Dark theme" : "Light theme"}
         className="grid size-9 place-items-center rounded-full text-soft transition-colors hover:bg-fill hover:text-text"
       >
-        {light ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
-          </svg>
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-          </svg>
-        )}
+        {/* In light mode the button offers "dark", so it shows the moon. */}
+        <SunMoon moon={light} />
       </button>
       <button
         type="button"

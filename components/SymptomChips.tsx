@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type KeyboardEvent, type Ref } from "react";
 import { springs } from "@/lib/motion";
 import { hasDetail, summarize, type SymptomDetail } from "@/lib/symptomDetail";
+import { findSymptom, REGION_LABELS } from "@/lib/symptoms";
 import { SymptomDetailPanel } from "./SymptomDetailPanel";
 
 interface SymptomChipsProps {
@@ -34,7 +35,15 @@ interface SymptomChipsProps {
   /** Optional per-symptom details (severity, onset, pattern, side, note). */
   details?: Record<string, SymptomDetail>;
   onDetail?: (label: string, detail: SymptomDetail) => void;
+  /** Adds a symptom (used by the quick picks when the list is empty). */
+  onAdd?: (label: string) => void;
 }
+
+/** One-tap suggestions shown while the list is empty. */
+const QUICK_PICKS = ["Fever", "Cough", "Headache", "Fatigue", "Sore throat", "Nausea"];
+
+/** Severity → colour of the strip on the row's left edge. */
+const SEVERITY_STRIP = { mild: "bg-support", moderate: "bg-amber", severe: "bg-contra" } as const;
 
 /**
  * The symptom log: a ranked, draggable list. Each symptom can open an optional
@@ -54,6 +63,7 @@ export function SymptomChips({
   onHover,
   details = {},
   onDetail,
+  onAdd,
 }: SymptomChipsProps) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -82,10 +92,29 @@ export function SymptomChips({
 
   if (symptoms.length === 0) {
     return (
-      <div className="grid h-full min-h-24 place-items-center rounded-2xl bg-fill p-4 text-center">
+      <div className="rounded-xl bg-fill p-3.5">
         <div>
-          <p className="font-display text-lg font-semibold">No symptoms yet</p>
-          <p className="mt-1 text-sm text-soft">Choose a region above or point at the body.</p>
+          <p className="text-sm font-semibold">No symptoms yet</p>
+          <p className="mt-0.5 text-[13px] text-soft">Search, pick a region, or point at the body.</p>
+          {onAdd && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-xs font-medium text-muted">Common</p>
+              <ul className="flex flex-wrap gap-1.5" aria-label="Common symptoms">
+                {QUICK_PICKS.map((label) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      onClick={() => onAdd(label)}
+                      className="flex min-h-8 items-center gap-1 rounded-full bg-raised px-3 text-[13px] font-medium text-soft shadow-sm ring-1 ring-[var(--line)] transition-colors hover:text-text"
+                    >
+                      <span aria-hidden className="text-cyan">+</span>
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -250,6 +279,9 @@ function RowFace({
     ? `${off ? "Excluded" : "Included"}. Click to ${off ? "include" : "exclude"}; arrow keys reorder.`
     : "Drag or use arrow keys to reorder, Delete to remove.";
   const summary = summarize(detail);
+  const known = findSymptom(label);
+  const where = known ? REGION_LABELS[known.region] : "Your own words";
+  const strip = detail?.severity ? SEVERITY_STRIP[detail.severity] : "bg-transparent";
   const tone = lifted
     ? "bg-raised shadow-[var(--shadow-lg)]"
     : highlighted
@@ -258,7 +290,8 @@ function RowFace({
         ? "bg-transparent outline-1 outline-dashed outline-[var(--line-strong)] text-muted"
         : "bg-fill hover:bg-[var(--fill-hover)]";
   return (
-    <div className={`flex min-h-10 items-center gap-1 rounded-xl pr-1 text-sm transition-colors ${tone}`}>
+    <div className={`relative flex min-h-11 items-center gap-1 overflow-hidden rounded-xl pr-1 text-sm transition-colors ${tone}`}>
+      <span aria-hidden className={`absolute inset-y-1.5 left-0 w-[3px] rounded-full transition-colors ${strip}`} />
       <button
         type="button"
         {...handleProps}
@@ -270,13 +303,9 @@ function RowFace({
         </span>
         <span className="min-w-0">
           <span className={`block truncate ${off ? "line-through decoration-muted" : ""}`}>{label}</span>
-          {(summary || (noEffect && !off)) && (
-            <span className="block truncate text-xs text-muted">
-              {summary}
-              {summary && noEffect && !off ? " · " : ""}
-              {noEffect && !off ? "No effect on the result" : ""}
-            </span>
-          )}
+          <span className="block truncate text-xs text-muted">
+            {[where, summary, noEffect && !off ? "No effect on the result" : ""].filter(Boolean).join(" · ")}
+          </span>
         </span>
       </button>
       {onExpand && (

@@ -1,0 +1,72 @@
+{
+  "source": "Mesh.001_Mesh.002",
+  "vertices": 7300,
+  "triangles": 14596,
+  "edges": 14605,
+  "slots": [
+    "head",
+    "neck",
+    "chest",
+    "abdomen",
+    "pelvis",
+    "armL",
+    "armR",
+    "legL",
+    "legR"
+  ],
+  "crotch": 0.542,
+  "landmarks": {
+    "shoulder": [
+      0.1054,
+      0.1916,
+      -0.0128
+    ],
+    "elbow": [
+      0.1705,
+      0.3745,
+      0.0162
+    ],
+    "wrist": [
+      0.1663,
+      0.4764,
+      0.062
+    ],
+    "hip": [
+      0.0525,
+      0.5612,
+      -0.0194
+    ],
+    "knee": [
+      0.0569,
+      0.7181,
+      -0.0336
+    ],
+    "ankle": [
+      0.0481,
+      0.946,
+      -0.0662
+    ]
+  },
+  "offsets": {
+    "positions": {
+      "offset": 0,
+      "length": 21900
+    },
+    "weights": {
+      "offset": 87600,
+      "length": 65700
+    },
+    "regions": {
+      "offset": 153300,
+      "length": 7300
+    },
+    "triangles": {
+      "offset": 160600,
+      "length": 43788
+    },
+    "edges": {
+      "offset": 248176,
+      "length": 29210
+    }
+  }
+}
