@@ -22,7 +22,7 @@ export type Duration = (typeof DURATIONS)[number];
 export type Severity = (typeof SEVERITIES)[number];
 
 /** Which implementation produced a result. Extend when adding e.g. "ml". */
-export type PredictorSource = "mock" | "groq";
+export type PredictorSource = "mock" | "groq" | "ml";
 
 /** What /api/predict returns on success. */
 export interface PredictResponse {

@@ -2,6 +2,7 @@
 
 import type { FollowUpAnswer, PredictionResult, PredictorSource } from "./predict/types";
 import { getSupabase } from "./supabase/client";
+import { dbError } from "./supabase/error";
 
 export interface SavedInput {
   symptoms: string[];
@@ -39,7 +40,7 @@ export async function saveAnalysis(source: PredictorSource, input: SavedInput, r
     result,
     patient_id: patientId,
   });
-  if (error) throw error;
+  if (error) throw dbError(error);
   return true;
 }
 
@@ -50,7 +51,7 @@ export async function listAnalyses(limit = 50, patientId?: string): Promise<Save
   let q = sb.from("analyses").select("*").order("created_at", { ascending: false }).limit(limit);
   if (patientId) q = q.eq("patient_id", patientId);
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) throw dbError(error);
   return (data ?? []) as SavedAnalysis[];
 }
 
@@ -58,7 +59,7 @@ export async function deleteAnalysis(id: string) {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("analyses").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw dbError(error);
 }
 
 /** Links a saved analysis to a patient (or unlinks it with null). */
@@ -66,5 +67,5 @@ export async function assignAnalysis(id: string, patientId: string | null) {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("analyses").update({ patient_id: patientId }).eq("id", id);
-  if (error) throw error;
+  if (error) throw dbError(error);
 }

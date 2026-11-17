@@ -11,3 +11,8 @@ npm-debug.log*
 
 # Superdesign scratch HTML
 .superdesign/tmp/
+
+# ML training (scripts and results are committed; raw data and the venv are not)
+ml/.venv/
+ml/data/
+ml/*.log

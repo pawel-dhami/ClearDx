@@ -329,32 +329,12 @@ input[type="range"]::-moz-range-thumb {
   opacity: 1;
 }
 
-/* Buttons: a ripple from the press point and a slight magnetic pull (primary). */
+/* Buttons: a slight magnetic pull (primary). */
 .btn {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   translate: var(--tx, 0) var(--ty, 0);
-}
-.btn::after {
-  content: "";
-  position: absolute;
-  left: var(--rx, 50%);
-  top: var(--ry, 50%);
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0;
-  pointer-events: none;
-}
-.btn[data-ripple]::after {
-  animation: ripple 0.6s ease-out both;
-}
-@keyframes ripple {
-  from { transform: scale(0); opacity: 0.28; }
-  to { transform: scale(26); opacity: 0; }
 }
 
 /* Pointer highlight: morphs onto the hovered control (components/site/Interactions.tsx). */
@@ -370,10 +350,6 @@ input[type="range"]::-moz-range-thumb {
     inset 0 0 0 1px color-mix(in oklab, var(--accent) 38%, transparent),
     0 6px 22px -8px color-mix(in oklab, var(--accent) 45%, transparent);
   will-change: transform, width, height;
-  transition: scale 0.18s var(--ease-out-hud);
-}
-.pointer-highlight.is-pressed {
-  scale: 0.96;
 }
 @media (hover: none) {
   .pointer-highlight {

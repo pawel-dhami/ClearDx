@@ -9,9 +9,12 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. With no API key the app runs in **mock mode** (deterministic, rule-based fake data).
+Open http://localhost:3000. With `GROQ_API_KEY` set (copy `.env.example` to `.env.local`), predictions come from a hosted
+language model. Without a key, the app uses its **model trained on public data** (multinomial logistic regression over
+377 symptoms and 773 diseases): training code in [`ml/`](ml/README.md), exported weights in `lib/predict/model/`, and a
+write-up with the data source, algorithms compared and verification results at `/model` in the app.
 
-To use Groq, copy `.env.example` to `.env.local` and set `GROQ_API_KEY`. Optional: `GROQ_MODEL` (default `openai/gpt-oss-120b`), `PREDICTOR=mock|groq` to force one.
+`PREDICTOR=llm|ml|mock` forces an engine (`mock` is the rule-based demo engine).
 
 ## API
 
@@ -24,10 +27,10 @@ To use Groq, copy `.env.example` to `.env.local` and set `GROQ_API_KEY`. Optiona
 
 `duration` is one of `<24h`, `1-3d`, `4-7d`, `1-4w`, `>1m`. `answers` is optional.
 
-Response: `{ source: "mock" | "groq", result: { predictions, reasoning_steps, red_flags, follow_up_questions } }` —
+Response: `{ source: "ml" | "mock" | "groq", result: { predictions, reasoning_steps, red_flags, follow_up_questions } }` —
 the result shape is defined and validated in `lib/predict/schema.ts`. Invalid input returns 400 with zod issues.
 
-## Swapping in a trained model
+## Prediction engines
 
 All prediction goes through one interface in `lib/predict/predictor.ts`:
 
@@ -38,8 +41,17 @@ interface Predictor {
 }
 ```
 
-Add e.g. `lib/predict/ml.ts` implementing it, add its name to `PredictorSource`, and return it from `getPredictor()`.
-The UI only talks to `/api/predict`, so nothing else changes.
+`lib/predict/groq.ts` (language model, default), `lib/predict/ml.ts` (trained model) and `lib/predict/mock.ts` implement it, and
+`getPredictor()` picks one. The UI only talks to `/api/predict`, so engines can be swapped without UI changes.
+
+## Training and verification
+
+```bash
+python -m venv ml/.venv && ml/.venv/Scripts/python -m pip install -r ml/requirements.txt
+ml/.venv/Scripts/python ml/download.py   # Mendeley "Disease and symptoms dataset 2023", CC BY 4.0, checksum-verified
+ml/.venv/Scripts/python ml/train.py      # compares 7 algorithms, exports logistic regression (about 10 min)
+ml/.venv/Scripts/python ml/verify.py     # held-out test, 5-fold cross-validation, calibration, external dataset
+```
 
 ## Features
 
@@ -59,8 +71,10 @@ The UI only talks to `/api/predict`, so nothing else changes.
 ## Layout
 
 - `lib/predict/schema.ts` – zod schemas for input and output
-- `lib/predict/groq.ts` – Groq JSON-mode predictor (validates, retries once with the validation error)
-- `lib/predict/mock.ts` – deterministic mock predictor
+- `lib/predict/ml.ts` – trained-model predictor; weights and reports in `lib/predict/model/`
+- `ml/` – Python training (`train.py`) and verification (`verify.py`)
+- `lib/predict/mock.ts` – deterministic rule-based demo predictor (development)
+- `lib/predict/groq.ts` – hosted language-model predictor (default when `GROQ_API_KEY` is set)
 - `lib/symptoms.ts` – symptom catalog by body region
 - `lib/api.ts` – typed client used by the UI
 - `app/api/predict/route.ts` – API route

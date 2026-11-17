@@ -332,7 +332,7 @@ const CONDITIONS: ConditionDef[] = [
   },
 ];
 
-const RED_FLAG_RULES: { when: (s: Set<string>, input: PredictInput) => boolean; text: string }[] = [
+export const RED_FLAG_RULES: { when: (s: Set<string>, input: PredictInput) => boolean; text: string }[] = [
   {
     when: (s) => s.has("chest_pain") && (s.has("shortness_of_breath") || s.has("palpitations")),
     text: "Chest pain with breathlessness or palpitations needs urgent medical assessment.",

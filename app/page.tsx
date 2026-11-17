@@ -218,6 +218,7 @@ export default function Landing() {
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-6 text-sm">
             <a href="#how-it-works" className="text-soft hover:text-cyan">How it works</a>
             <Link href="/app" className="text-soft hover:text-cyan">Launch app</Link>
+            <Link href="/model" className="text-soft hover:text-cyan">Model &amp; data</Link>
             <a href={GITHUB} className="text-soft hover:text-cyan">Source on GitHub</a>
           </nav>
         </div>

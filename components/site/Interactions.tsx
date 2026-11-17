@@ -24,7 +24,7 @@ interface Box {
  * - pointer highlight: a soft shape that morphs onto whatever button, link or pill the mouse is
  *   over (its size and corner radius), drifting slightly toward the cursor, then shrinks back into it
  * - cards: a spotlight and a lit border that follow the cursor
- * - buttons: a ripple from the press point and a slight magnetic pull on primary buttons
+ * - buttons: a slight magnetic pull on primary buttons
  * Mouse only; motion is reduced when the OS asks for it.
  */
 export function Interactions() {
@@ -158,34 +158,16 @@ export function Interactions() {
       target = null;
       wake();
     };
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && target) hl.classList.add("is-pressed");
-      if (reduce.matches) return;
-      const el = e.target instanceof Element ? (e.target.closest(BUTTON) as HTMLElement | null) : null;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty("--rx", `${e.clientX - r.left}px`);
-      el.style.setProperty("--ry", `${e.clientY - r.top}px`);
-      // restart the ripple animation
-      el.removeAttribute("data-ripple");
-      void el.offsetWidth;
-      el.setAttribute("data-ripple", "");
-    };
-    const onUp = () => hl.classList.remove("is-pressed");
     // Scrolling moves targets under a still mouse: keep the shape glued to them.
     const onScroll = () => target && wake();
 
     document.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerdown", onDown, { passive: true });
-    document.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     document.documentElement.addEventListener("pointerleave", onLeave);
     return () => {
       cancelAnimationFrame(raf);
       cancelAnimationFrame(loop);
       document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointerup", onUp);
       window.removeEventListener("scroll", onScroll, { capture: true });
       document.documentElement.removeEventListener("pointerleave", onLeave);
       onLeave();

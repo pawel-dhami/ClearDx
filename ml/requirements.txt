@@ -1,0 +1,4 @@
+# Training only. The web app does not need Python.
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.5

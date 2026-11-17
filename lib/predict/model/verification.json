@@ -1,0 +1,339 @@
+{
+  "generated": "2026-11-17",
+  "model_file": "lib/predict/model/disease-model.json",
+  "holdout": {
+    "cases": 49363,
+    "top1_accuracy": 0.8577,
+    "top3_accuracy": 0.9577,
+    "top5_accuracy": 0.9781,
+    "baseline_most_common_top1": 0.004
+  },
+  "cross_validation": {
+    "folds": [
+      {
+        "fold": 1,
+        "top1_accuracy": 0.8595,
+        "top3_accuracy": 0.9591,
+        "seconds": 200
+      },
+      {
+        "fold": 2,
+        "top1_accuracy": 0.8599,
+        "top3_accuracy": 0.9577,
+        "seconds": 169
+      },
+      {
+        "fold": 3,
+        "top1_accuracy": 0.8593,
+        "top3_accuracy": 0.9585,
+        "seconds": 161
+      },
+      {
+        "fold": 4,
+        "top1_accuracy": 0.8627,
+        "top3_accuracy": 0.9588,
+        "seconds": 187
+      },
+      {
+        "fold": 5,
+        "top1_accuracy": 0.8587,
+        "top3_accuracy": 0.9581,
+        "seconds": 158
+      }
+    ],
+    "top1_mean": 0.86,
+    "top1_std": 0.0014,
+    "top3_mean": 0.9584,
+    "top3_std": 0.0005
+  },
+  "calibration": {
+    "bins": [
+      {
+        "from": 0.0,
+        "to": 0.1,
+        "cases": 280,
+        "mean_confidence": 0.07,
+        "accuracy": 0.039
+      },
+      {
+        "from": 0.1,
+        "to": 0.2,
+        "cases": 994,
+        "mean_confidence": 0.156,
+        "accuracy": 0.151
+      },
+      {
+        "from": 0.2,
+        "to": 0.3,
+        "cases": 1664,
+        "mean_confidence": 0.251,
+        "accuracy": 0.268
+      },
+      {
+        "from": 0.3,
+        "to": 0.4,
+        "cases": 2079,
+        "mean_confidence": 0.352,
+        "accuracy": 0.358
+      },
+      {
+        "from": 0.4,
+        "to": 0.5,
+        "cases": 1990,
+        "mean_confidence": 0.451,
+        "accuracy": 0.463
+      },
+      {
+        "from": 0.5,
+        "to": 0.6,
+        "cases": 2790,
+        "mean_confidence": 0.545,
+        "accuracy": 0.548
+      },
+      {
+        "from": 0.6,
+        "to": 0.7,
+        "cases": 1919,
+        "mean_confidence": 0.648,
+        "accuracy": 0.671
+      },
+      {
+        "from": 0.7,
+        "to": 0.8,
+        "cases": 1475,
+        "mean_confidence": 0.748,
+        "accuracy": 0.793
+      },
+      {
+        "from": 0.8,
+        "to": 0.9,
+        "cases": 1923,
+        "mean_confidence": 0.857,
+        "accuracy": 0.954
+      },
+      {
+        "from": 0.9,
+        "to": 1.0,
+        "cases": 34249,
+        "mean_confidence": 0.987,
+        "accuracy": 1.0
+      }
+    ],
+    "expected_calibration_error": 0.0165
+  },
+  "per_disease": {
+    "lowest": [
+      {
+        "disease": "psychotic disorder",
+        "cases": 170,
+        "recall": 0.282
+      },
+      {
+        "disease": "skin polyp",
+        "cases": 162,
+        "recall": 0.315
+      },
+      {
+        "disease": "dry eye of unknown cause",
+        "cases": 171,
+        "recall": 0.439
+      },
+      {
+        "disease": "seborrheic keratosis",
+        "cases": 179,
+        "recall": 0.441
+      },
+      {
+        "disease": "skin pigmentation disorder",
+        "cases": 171,
+        "recall": 0.497
+      },
+      {
+        "disease": "diabetic retinopathy",
+        "cases": 91,
+        "recall": 0.516
+      },
+      {
+        "disease": "schizophrenia",
+        "cases": 174,
+        "recall": 0.569
+      },
+      {
+        "disease": "corneal disorder",
+        "cases": 128,
+        "recall": 0.57
+      }
+    ],
+    "highest": [
+      {
+        "disease": "vasculitis",
+        "cases": 59,
+        "recall": 1.0
+      },
+      {
+        "disease": "pilonidal cyst",
+        "cases": 51,
+        "recall": 1.0
+      },
+      {
+        "disease": "osteoporosis",
+        "cases": 63,
+        "recall": 1.0
+      },
+      {
+        "disease": "lymphoma",
+        "cases": 59,
+        "recall": 1.0
+      },
+      {
+        "disease": "ganglion cyst",
+        "cases": 117,
+        "recall": 1.0
+      },
+      {
+        "disease": "cirrhosis",
+        "cases": 78,
+        "recall": 1.0
+      },
+      {
+        "disease": "breast infection (mastitis)",
+        "cases": 96,
+        "recall": 1.0
+      },
+      {
+        "disease": "balanitis",
+        "cases": 91,
+        "recall": 1.0
+      }
+    ],
+    "diseases_scored": 328
+  },
+  "external": {
+    "name": "Symptom to Diagnosis",
+    "publisher": "Gretel.ai (Hugging Face)",
+    "url": "https://huggingface.co/datasets/gretelai/symptom_to_diagnosis",
+    "licence": "Apache 2.0",
+    "note": "Written patient descriptions (rewritten with a language model by the publisher, no personal data), one diagnosis each.",
+    "total_cases": 1065,
+    "cases_used": 1025,
+    "diagnoses_used": 21,
+    "excluded": {
+      "jaundice": 40
+    },
+    "mean_symptoms_extracted": 2.75,
+    "cases_with_no_symptom_found": 94,
+    "top1_accuracy": 0.078,
+    "top3_accuracy": 0.1259,
+    "top5_accuracy": 0.1434,
+    "top10_accuracy": 0.2624,
+    "chance_top5": 0.0065,
+    "per_diagnosis": [
+      {
+        "diagnosis": "bronchial asthma",
+        "cases": 50,
+        "top3_accuracy": 0.64
+      },
+      {
+        "diagnosis": "impetigo",
+        "cases": 50,
+        "top3_accuracy": 0.48
+      },
+      {
+        "diagnosis": "allergy",
+        "cases": 50,
+        "top3_accuracy": 0.32
+      },
+      {
+        "diagnosis": "psoriasis",
+        "cases": 50,
+        "top3_accuracy": 0.32
+      },
+      {
+        "diagnosis": "arthritis",
+        "cases": 50,
+        "top3_accuracy": 0.24
+      },
+      {
+        "diagnosis": "chicken pox",
+        "cases": 50,
+        "top3_accuracy": 0.16
+      },
+      {
+        "diagnosis": "pneumonia",
+        "cases": 47,
+        "top3_accuracy": 0.128
+      },
+      {
+        "diagnosis": "urinary tract infection",
+        "cases": 48,
+        "top3_accuracy": 0.125
+      },
+      {
+        "diagnosis": "drug reaction",
+        "cases": 48,
+        "top3_accuracy": 0.083
+      },
+      {
+        "diagnosis": "common cold",
+        "cases": 49,
+        "top3_accuracy": 0.061
+      },
+      {
+        "diagnosis": "migraine",
+        "cases": 42,
+        "top3_accuracy": 0.048
+      },
+      {
+        "diagnosis": "cervical spondylosis",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "dengue",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "malaria",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "varicose veins",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "hypertension",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "diabetes",
+        "cases": 50,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "gastroesophageal reflux disease",
+        "cases": 49,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "fungal infection",
+        "cases": 48,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "typhoid",
+        "cases": 47,
+        "top3_accuracy": 0.0
+      },
+      {
+        "diagnosis": "peptic ulcer disease",
+        "cases": 47,
+        "top3_accuracy": 0.0
+      }
+    ]
+  },
+  "minutes": 14.7
+}

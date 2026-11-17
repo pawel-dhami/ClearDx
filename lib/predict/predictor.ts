@@ -24,14 +24,23 @@ export class PredictorError extends Error {
 
 export async function getPredictor(): Promise<Predictor> {
   const forced = process.env.PREDICTOR?.trim().toLowerCase();
+
   const key = process.env.GROQ_API_KEY?.trim();
 
-  if (forced === "groq" || (!forced && key)) {
-    if (!key) throw new PredictorError("PREDICTOR=groq but GROQ_API_KEY is not set", 500);
-    const { GroqPredictor } = await import("./groq");
-    return new GroqPredictor(key, process.env.GROQ_MODEL?.trim() || undefined);
+  // Engine switch (environment variable PREDICTOR):
+  //   (unset) or "llm"/"groq" → hosted language model (default; needs GROQ_API_KEY)
+  //   "ml"                    → the model trained on public data (ml/train.py; see /model)
+  //   "mock"                  → rule-based demo engine
+  // Without an API key the default falls back to the trained model.
+  if (forced === "ml" || (!forced && !key)) {
+    const { MlPredictor } = await import("./ml");
+    return new MlPredictor();
   }
-
-  const { MockPredictor } = await import("./mock");
-  return new MockPredictor();
+  if (forced === "mock") {
+    const { MockPredictor } = await import("./mock");
+    return new MockPredictor();
+  }
+  if (!key) throw new PredictorError("PREDICTOR=llm but GROQ_API_KEY is not set", 500);
+  const { GroqPredictor } = await import("./groq");
+  return new GroqPredictor(key, process.env.GROQ_MODEL?.trim() || undefined);
 }

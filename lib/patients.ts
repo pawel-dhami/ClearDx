@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Sex } from "./predict/types";
 import { getSupabase } from "./supabase/client";
+import { dbError } from "./supabase/error";
 
 /** A patient kept by the signed-in user (table public.patients, protected by row-level security). */
 export interface Patient {
@@ -27,7 +28,7 @@ export async function listPatients(): Promise<Patient[]> {
   const sb = getSupabase();
   if (!sb) return [];
   const { data, error } = await sb.from("patients").select("id, created_at, name, birth_year, sex, notes").order("name");
-  if (error) throw error;
+  if (error) throw dbError(error);
   return (data ?? []) as Patient[];
 }
 
@@ -35,7 +36,7 @@ export async function createPatient(p: PatientInput): Promise<Patient> {
   const sb = getSupabase();
   if (!sb) throw new Error("Sign-in isn't set up on this deployment.");
   const { data, error } = await sb.from("patients").insert(clean(p)).select().single();
-  if (error) throw error;
+  if (error) throw dbError(error);
   return data as Patient;
 }
 
@@ -43,7 +44,7 @@ export async function updatePatient(id: string, p: Partial<PatientInput>): Promi
   const sb = getSupabase();
   if (!sb) throw new Error("Sign-in isn't set up on this deployment.");
   const { data, error } = await sb.from("patients").update(clean(p)).eq("id", id).select().single();
-  if (error) throw error;
+  if (error) throw dbError(error);
   return data as Patient;
 }
 
@@ -52,7 +53,7 @@ export async function deletePatient(id: string) {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("patients").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw dbError(error);
 }
 
 /** Age this year from a birth year (null when unknown). */

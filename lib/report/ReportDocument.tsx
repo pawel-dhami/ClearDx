@@ -104,7 +104,8 @@ export function ReportDocument(d: ReportData) {
   const answered = new Set(d.answers.map((a) => a.question));
   const openQuestions = r.follow_up_questions.filter((q) => !answered.has(q.question));
   const when = d.generatedAt.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
-  const source = d.response.source === "mock" ? "Mock predictor (demo data)" : "Groq language model";
+  const source =
+    d.response.source === "mock" ? "Rule-based demo engine" : d.response.source === "ml" ? "ClearDx trained model (logistic regression)" : "Live AI model";
 
   return (
     <Document title={`ClearDx report ${d.reportId}`} author="ClearDx" subject="Explainable symptom analysis (educational demo)" creator="ClearDx">

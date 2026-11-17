@@ -1,0 +1,116 @@
+{
+  "generated": "2026-11-17",
+  "dataset": {
+    "name": "Disease and symptoms dataset 2023",
+    "publisher": "Mendeley Data",
+    "doi": "10.17632/2cxccsxydc.1",
+    "url": "https://data.mendeley.com/datasets/2cxccsxydc/1",
+    "licence": "CC BY 4.0",
+    "synthetic": true,
+    "rows": 246945,
+    "unique_rows": 189647,
+    "duplicate_rows": 57298,
+    "diseases": 773,
+    "symptoms": 377,
+    "mean_symptoms_per_row": 5.33,
+    "rows_per_disease": {
+      "min": 1,
+      "median": 168.0,
+      "max": 1219
+    }
+  },
+  "split": {
+    "method": "GroupShuffleSplit by unique row (no identical symptom pattern in both sets)",
+    "test_fraction": 0.2,
+    "train_rows": 197582,
+    "test_rows": 49363,
+    "seed": 42
+  },
+  "models": [
+    {
+      "name": "Bernoulli Naive Bayes",
+      "key": "naive_bayes_bernoulli",
+      "top1_accuracy": 0.863,
+      "top3_accuracy": 0.9597,
+      "top5_accuracy": 0.9797,
+      "macro_f1": 0.6937,
+      "fit_seconds": 4.6,
+      "predict_ms_per_case": 0.047
+    },
+    {
+      "name": "Multinomial Naive Bayes",
+      "key": "naive_bayes_multinomial",
+      "top1_accuracy": 0.8526,
+      "top3_accuracy": 0.954,
+      "top5_accuracy": 0.9761,
+      "macro_f1": 0.6934,
+      "fit_seconds": 5.2,
+      "predict_ms_per_case": 0.036
+    },
+    {
+      "name": "Decision tree",
+      "key": "decision_tree",
+      "top1_accuracy": 0.7724,
+      "top3_accuracy": 0.8361,
+      "top5_accuracy": 0.8384,
+      "macro_f1": 0.5876,
+      "fit_seconds": 56.1,
+      "predict_ms_per_case": 0.003
+    },
+    {
+      "name": "k-nearest neighbours (k=25, cosine)",
+      "key": "knn",
+      "top1_accuracy": 0.8063,
+      "top3_accuracy": 0.9082,
+      "top5_accuracy": 0.93,
+      "macro_f1": 0.6508,
+      "fit_seconds": 0.1,
+      "predict_ms_per_case": 3.746
+    },
+    {
+      "name": "Linear SVM (one-vs-rest)",
+      "key": "linear_svm",
+      "top1_accuracy": 0.8554,
+      "top3_accuracy": 0.9561,
+      "top5_accuracy": 0.9774,
+      "macro_f1": 0.7011,
+      "fit_seconds": 89.0,
+      "predict_ms_per_case": 0.01
+    },
+    {
+      "name": "Logistic regression (multinomial)",
+      "key": "logistic_regression",
+      "top1_accuracy": 0.8577,
+      "top3_accuracy": 0.9577,
+      "top5_accuracy": 0.9781,
+      "macro_f1": 0.6909,
+      "fit_seconds": 162.6,
+      "predict_ms_per_case": 0.008
+    },
+    {
+      "name": "Neural network (MLP, 1\u00d7512)",
+      "key": "mlp",
+      "top1_accuracy": 0.8517,
+      "top3_accuracy": 0.9568,
+      "top5_accuracy": 0.9784,
+      "macro_f1": 0.6994,
+      "fit_seconds": 67.9,
+      "predict_ms_per_case": 0.011
+    }
+  ],
+  "chosen": {
+    "key": "logistic_regression",
+    "reason": "Close to the best accuracy, and each symptom has one signed weight per disease, so every prediction can be explained exactly in the app's contribution graph.",
+    "exported_top1_accuracy": 0.8577,
+    "non_zero_weights": 95010,
+    "pruned_below": 0.05
+  },
+  "total_training_minutes": 10.0,
+  "environment": {
+    "python": "3.11.9",
+    "scikit_learn": "1.9.1",
+    "numpy": "2.4.6",
+    "pandas": "3.1.1",
+    "cpu_cores": 8
+  }
+}
