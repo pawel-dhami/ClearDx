@@ -1,8 +1,6 @@
 # Trained model
 
-ClearDx can also run on a model trained from public data. The app still uses its
-language model (or the rule engine) by default; start the server with
-`PREDICTOR=ml` to use this one. A plain-language write-up is at `/model` in the app.
+ClearDx runs on a model trained from public data. 
 
 ## Data
 
