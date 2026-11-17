@@ -16,3 +16,6 @@ npm-debug.log*
 ml/.venv/
 ml/data/
 ml/*.log
+
+# Local Claude Code settings (not part of the app)
+.claude/
